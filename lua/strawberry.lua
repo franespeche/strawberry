@@ -149,4 +149,4 @@ Strawberry:setup({ actions = {
   }})
 
 
-return { setup = Strawberry:setup, create_seed = Seed:create }
+return { setup = Strawberry.setup, create_seed = Seed.create }
