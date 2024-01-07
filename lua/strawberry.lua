@@ -129,6 +129,7 @@ end
 
 function Strawberry:setup(config)
   -- Validations
+  P(config)
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
 
   -- Register actions
