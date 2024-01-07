@@ -31,7 +31,8 @@ local Seed = {
   num = nil,
   title = nil,
   value = { nil, true }, -- value, visible
-  action = nil
+  action = nil,
+  default_action = open_file
 }
 
 function Seed:create(num, value, title, visible, action)
@@ -39,7 +40,7 @@ function Seed:create(num, value, title, visible, action)
       num = num,
       value = { value, visible },
       title = title,
-      action = action
+      action = action or self.default_action
     }
   setmetatable(obj, { __index = Seed })
   return obj
@@ -55,7 +56,7 @@ local Strawberry = {
   ctx = {},
   -- make this a table of actions
   action = nil,
-  actions = {{ name = "holis" }}
+  actions = {}
 }
 
 
@@ -142,11 +143,5 @@ function Strawberry:init(seeds_type)
   self:populate_seeds(seeds_type)
   self:open()
 end
-
--- Strawberry:init('recent_files')
-Strawberry:setup({ actions = {
-    { name = 'get_recent_files', callback = get_recent_files }
-  }})
-
 
 return { setup = Strawberry.setup, create_seed = Seed.create }
