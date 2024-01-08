@@ -7,6 +7,31 @@ local open_file = function (file)
   P(file)
 end
 
+-- Seed
+local Seed = {
+  num = nil,
+  title = nil,
+  value = { nil, true }, -- value, visible
+  action = nil,
+}
+
+function Seed:create(num, value, title, visible, action)
+  local obj = {
+      num = num,
+      value = { value, visible },
+      title = title,
+      action = action or open_file
+    }
+  setmetatable(obj, { __index = Seed })
+  return obj
+end
+
+function Seed:execute(ctx)
+  P(ctx)
+  P(self)
+  self.action(self.value[1])
+end
+
 -- Strawberry
 local Strawberry = {
   ctx = {},
@@ -129,6 +154,8 @@ function Strawberry:setup(config)
     end
   end
 
+  setmetatable(Seed, { __index = Strawberry })
+
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
     local action_name = args.args
@@ -156,29 +183,6 @@ function Strawberry:init(action_name)
 end
 
 
--- Seed
-local Seed = {
-  num = nil,
-  title = nil,
-  value = { nil, true }, -- value, visible
-  action = nil,
-}
-
-function Seed:create(num, value, title, visible, action)
-  local obj = {
-      num = num,
-      value = { value, visible },
-      title = title,
-      action = action or open_file
-    }
-  setmetatable(obj, { __index = Seed })
-  return obj
-end
-
-function Seed:execute(ctx)
-  P(ctx)
-  self.action(self.value[1])
-end
 
 
 return {
