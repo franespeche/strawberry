@@ -47,8 +47,6 @@ local Strawberry = {
 -- Populate seeds with given lines
 function Strawberry:populate_seeds(action)
   local seeds = action.callback()
-  print('populate')
-  P(seeds)
   self.seeds = seeds or {}
 end
 
@@ -133,6 +131,9 @@ function Strawberry:open()
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
+  -- set buffer
+  vim.api.nvim_buf_set_lines(buf, 1, #lines + 1, false, lines)
   vim.api.nvim_win_set_buf(win, buf)
 
   -- resize
@@ -147,7 +148,7 @@ function Strawberry:open()
 end
 
 function Strawberry:setup(config)
-  -- Validations
+  -- Validate config
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
 
   -- Register actions
@@ -161,11 +162,9 @@ function Strawberry:setup(config)
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
     local action_name = args.args
-    print(action_name)
     if(action_name == "") then return error("Attempted to launch Strawberry with no action name") end
     return Strawberry:init(action_name)
   end, { nargs = '?' })
-
 end
 
 function Strawberry:get_action(action_name)
@@ -180,8 +179,6 @@ function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
   if(self:action_exists(action_name)) then
     self:populate_seeds(self:get_action(action_name))
-    print('after')
-    P(self.seeds)
     self:open()
   else
     return error("No registered action under name: " .. action_name)
