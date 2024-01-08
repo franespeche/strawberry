@@ -75,11 +75,19 @@ function Strawberry:register_action(action)
 end
 
 local function get_line_content(seed)
+  local line = tostring(seed.num)
+
   local value = seed.value[1]
   local value_visible = seed.value[2]
-  P(value)
-  P(value_visible)
-  return seed.num .. " " .. (seed.title or "-")
+
+  if(seed.title ~= "") then
+    line = line .. " " ..seed.title
+  end
+
+  if(value_visible) then
+    line = line .. " " .. value
+  end
+  return line
 end
 
 -- Opens buffer with lines
