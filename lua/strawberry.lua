@@ -1,3 +1,6 @@
+-- run sys commands
+-- local result = vim.fn.systemlist('git diff-tree --no-commit-id --name-only -r HEAD')
+
 local augroup = vim.api.nvim_create_augroup("Strawberry", { clear = true })
 
 -- enums
@@ -8,31 +11,12 @@ local open_file = function (file)
   print('execute line ' .. file)
 end
 
-local function get_recent_files(limit)
-  limit = limit or ITEMS_AMOUNT
-
-  local oldfiles = vim.v.oldfiles
-  local seeds = {}
-
-  local i = 1
-  while(i <= #oldfiles and (#seeds < limit or i < 10)) do
-    local file = oldfiles[i]
-    if(vim.fn.filereadable(file) == 1) then
-      local seed = Seed:create(#seeds + 1, file, nil, true, open_file)
-      table.insert(seeds, seed)
-    end
-    i = i + 1
-  end
-  return seeds
-end
-
 -- Seed
 local Seed = {
   num = nil,
   title = nil,
   value = { nil, true }, -- value, visible
   action = nil,
-  default_action = open_file
 }
 
 function Seed:create(num, value, title, visible, action)
@@ -40,7 +24,7 @@ function Seed:create(num, value, title, visible, action)
       num = num,
       value = { value, visible },
       title = title,
-      action = action or self.default_action
+      action = action or open_file
     }
   setmetatable(obj, { __index = Seed })
   return obj
@@ -55,24 +39,21 @@ end
 local Strawberry = {
   ctx = {},
   -- make this a table of actions
-  action = nil,
   actions = {}
 }
 
 
 -- Populate seeds with given lines
 function Strawberry:populate_seeds(seeds_type, opts)
-  if(seeds_type == 'git_recent_files') then
-    -- setmetatable(self, { __index = Strawberry })
-    self.seeds = get_recent_files(opts)
-  end
+  -- execute action
+  error('Implement populate_seeds')
 end
 
 -- Validates action
 function Strawberry:validate_action(action)
   -- validate fields
-  if(type(action.name) ~= 'string') then 
-    error('"action.name" must be of type "string"') 
+  if(type(action.name) ~= 'string') then
+    error('"action.name" must be of type "string"')
     return false
   end
   -- check if already exists
@@ -102,6 +83,32 @@ function Strawberry:open()
   vim.cmd('split')
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
+  -- api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
+  -- 
+  --   -- get dimensions
+  --   local width = api.nvim_get_option("columns")
+  --   local height = api.nvim_get_option("lines")
+  -- 
+  --   -- calculate our floating window size
+  --   local win_height = math.ceil(height * 0.8 - 4)
+  --   local win_width = math.ceil(width * 0.8)
+  -- 
+  --   -- and its starting position
+  --   local row = math.ceil((height - win_height) / 2 - 1)
+  --   local col = math.ceil((width - win_width) / 2)
+  -- 
+  --   -- set some options
+  --   local opts = {
+  --     style = "minimal",
+  --     relative = "editor",
+  --     width = win_width,
+  --     height = win_height,
+  --     row = row,
+  --     col = col
+  --   }
+  -- 
+  --   -- and finally create it with buffer attached
+  --   win = api.nvim_open_win(buf, true, opts)
   self.ctx.win = win
   self.ctx.buf = buf
 
@@ -128,10 +135,14 @@ function Strawberry:open()
     self.seeds[num]:execute()
   end
   vim.keymap.set("n", "<cr>", function() execute_seed() end, { silent = true, buffer = buf })
-
 end
 
 function Strawberry:setup(config)
+  -- Create autocommands
+  vim.api.nvim_create_user_command('Strawberry', function(action_name)
+    print('Strawberry ' .. action_name)
+  end)
+
   -- Validations
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
 
