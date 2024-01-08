@@ -80,7 +80,7 @@ local function get_line_content(seed)
   local value = seed.value[1]
   local value_visible = seed.value[2]
 
-  if(seed.title ~= "") then
+  if(seed.title and seed.title ~= "") then
     line = line .. " " ..seed.title
   end
 
