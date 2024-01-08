@@ -114,6 +114,7 @@ function Strawberry:open()
   vim.api.nvim_set_option('cursorline', true)
   vim.api.nvim_set_option('spell', false)
   vim.api.nvim_set_option('wrap', false)
+  vim.api.nvim_set_option('filetype', "strawberry")
   vim.api.nvim_buf_set_option(buf, 'buflisted', false)
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
@@ -126,14 +127,12 @@ function Strawberry:open()
   vim.cmd('resize ' .. #lines + 1)
 
   -- Create highlights
-
-  -- vim.api.nvim_buf_add_highlight(buf, 0, 'strawberryKey', 1, 1, -1)
-  if (vim.fn.has("syntax")) then
-    vim.cmd.syntax([[match strawberryKey /\v(\d|\a|\s)/ contained]])
-    vim.cmd.syntax([[match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
-    vim.cmd([[hi def link strawberryKey String]])
-    vim.cmd([[hi def link strawberryName Type]])
-  end
+  -- if (vim.fn.has("syntax")) then
+  --   vim.cmd.syntax([[match strawberryKey /\v^\s\s(\d|\a|\s)/ contained]])
+  --   vim.cmd.syntax([[match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
+  --   vim.cmd([[hi def link strawberryKey String]])
+  --   vim.cmd([[hi def link strawberryName Type]])
+  -- end
 
   -- <CR> handler
   local function execute_seed()
@@ -163,6 +162,13 @@ function Strawberry:setup(config)
     if(action_name == "") then return error("Attempted to launch Strawberry with no action name") end
     return Strawberry:init(action_name)
   end, { nargs = '?' })
+
+  vim.api.nvim_create_autocmd('BufLeave', {
+    pattern = "strawberry",
+    callback = function()
+      P(self.ctx)
+    end
+  })
 
 end
 
