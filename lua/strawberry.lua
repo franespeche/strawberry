@@ -4,10 +4,10 @@
 
 -- helpers
 local open_file = function (file, ctx)
+  vim.api.nvim_buf_delete(ctx.buf, {})
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(ctx.win_origin, buf)
   vim.cmd('e ' .. file)
-  vim.api.nvim_buf_delete(ctx.buf, {})
 end
 
 -- Seed
