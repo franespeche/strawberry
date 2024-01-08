@@ -130,10 +130,11 @@ function Strawberry:open()
   vim.api.nvim_buf_set_option(buf, 'buflisted', false)
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
   -- set buffer
   vim.api.nvim_buf_set_lines(buf, 1, #lines + 1, false, lines)
+  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
   vim.api.nvim_win_set_buf(win, buf)
 
   -- resize
