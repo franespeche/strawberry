@@ -2,39 +2,10 @@
 -- run sys commands
 -- local result = vim.fn.systemlist('git diff-tree --no-commit-id --name-only -r HEAD')
 
-local augroup = vim.api.nvim_create_augroup("Strawberry", { clear = true })
-
--- enums
-local ITEMS_AMOUNT = 1
-
 -- helpers
 local open_file = function (file)
   P(file)
 end
-
--- Seed
-local Seed = {
-  num = nil,
-  title = nil,
-  value = { nil, true }, -- value, visible
-  action = nil,
-}
-
-function Seed:create(num, value, title, visible, action)
-  local obj = {
-      num = num,
-      value = { value, visible },
-      title = title,
-      action = action or open_file
-    }
-  setmetatable(obj, { __index = Seed })
-  return obj
-end
-
-function Seed:execute()
-  self.action(self.value[1])
-end
-
 
 -- Strawberry
 local Strawberry = {
@@ -126,13 +97,11 @@ function Strawberry:open()
   vim.api.nvim_set_option('foldenable', false)
   vim.api.nvim_set_option('cursorline', true)
   vim.api.nvim_set_option('spell', false)
+  vim.api.nvim_set_option('statusline', false)
   vim.api.nvim_set_option('wrap', false)
   vim.api.nvim_buf_set_option(buf, 'buflisted', false)
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-
-  -- set buffer
-  P(lines)
   vim.api.nvim_buf_set_lines(buf, 0, #lines, false, lines)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
@@ -187,10 +156,34 @@ function Strawberry:init(action_name)
   end
 end
 
+
+-- Seed
+local Seed = {
+  num = nil,
+  title = nil,
+  value = { nil, true }, -- value, visible
+  action = nil,
+}
+
+function Seed:create(num, value, title, visible, action)
+  local obj = {
+      num = num,
+      value = { value, visible },
+      title = title,
+      action = action or open_file
+    }
+  setmetatable(obj, { __index = Strawberry })
+  return obj
+end
+
+function Seed:execute()
+  self.action(self.value[1])
+end
+
+
 return {
   setup = Strawberry.setup,
   create_seed = function(num, value, title, visible, action)
      return Seed:create(num, value, title, visible, action)
     end
   }
-
