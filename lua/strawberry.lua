@@ -81,6 +81,7 @@ end
 function Strawberry:open()
   -- get the lines to render
   local lines = {}
+  P(self)
   for _, seed in pairs(self.seeds) do
     table.insert(lines, seed.value[1])
   end
