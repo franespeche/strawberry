@@ -3,8 +3,9 @@
 -- local result = vim.fn.systemlist('git diff-tree --no-commit-id --name-only -r HEAD')
 
 -- helpers
-local open_file = function (file)
-  P(file)
+local open_file = function (file, ctx)
+  vim.api.nvim_win_set_buf(ctx.win, ctx.buf_origin)
+  vim.api.nvim_buf_delete(ctx.buf, {})
 end
 
 -- Seed
@@ -27,8 +28,7 @@ function Seed:create(num, value, title, visible, action)
 end
 
 function Seed:execute()
-  P(self.ctx)
-  self.action(self.value[1])
+  self.action(self.value[1], self.ctx)
 end
 
 -- Strawberry
@@ -85,32 +85,6 @@ function Strawberry:open()
   vim.cmd('split')
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
-  -- api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-  -- 
-  --   -- get dimensions
-  --   local width = api.nvim_get_option("columns")
-  --   local height = api.nvim_get_option("lines")
-  -- 
-  --   -- calculate our floating window size
-  --   local win_height = math.ceil(height * 0.8 - 4)
-  --   local win_width = math.ceil(width * 0.8)
-  -- 
-  --   -- and its starting position
-  --   local row = math.ceil((height - win_height) / 2 - 1)
-  --   local col = math.ceil((width - win_width) / 2)
-  -- 
-  --   -- set some options
-  --   local opts = {
-  --     style = "minimal",
-  --     relative = "editor",
-  --     width = win_width,
-  --     height = win_height,
-  --     row = row,
-  --     col = col
-  --   }
-  -- 
-  --   -- and finally create it with buffer attached
-  --   win = api.nvim_open_win(buf, true, opts)
   self.ctx.win = win
   self.ctx.buf = buf
 
@@ -142,6 +116,8 @@ function Strawberry:open()
 end
 
 function Strawberry:setup(config)
+  setmetatable(Seed, { __index = Strawberry })
+
   -- Validate config
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
 
@@ -152,8 +128,6 @@ function Strawberry:setup(config)
       Strawberry:register_action(action)
     end
   end
-
-  setmetatable(Seed, { __index = Strawberry })
 
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
@@ -180,9 +154,6 @@ function Strawberry:init(action_name)
     return error("No registered action under name: " .. action_name)
   end
 end
-
-
-
 
 return {
   setup = Strawberry.setup,
