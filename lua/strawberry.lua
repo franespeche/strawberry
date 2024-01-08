@@ -9,7 +9,7 @@ local ITEMS_AMOUNT = 1
 
 -- helpers
 local open_file = function (file)
-  print('execute line ' .. file)
+  P(file)
 end
 
 -- Seed
