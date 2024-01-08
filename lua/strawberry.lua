@@ -1,3 +1,4 @@
+-- schedule_wrap
 -- run sys commands
 -- local result = vim.fn.systemlist('git diff-tree --no-commit-id --name-only -r HEAD')
 
@@ -140,7 +141,8 @@ end
 function Strawberry:setup(config)
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
-    P(args)
+    local action_name = args.args
+    P(action_name)
   end, {})
 
   -- Validations
