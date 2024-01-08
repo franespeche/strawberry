@@ -126,9 +126,11 @@ function Strawberry:open()
   vim.cmd('resize ' .. #lines + 1)
 
   -- Create highlights
+
+  vim.api.nvim_buf_add_highlight(buf, 0, 'strawberryKey', 1, 1, -1)
   if (vim.fn.has("syntax")) then
-    vim.cmd([[syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained]])
-    vim.cmd([[syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
+    -- vim.cmd([[syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained]])
+    -- vim.cmd([[syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
     vim.cmd([[hi def link strawberryKey String]])
     vim.cmd([[hi def link strawberryName Type]])
   end
