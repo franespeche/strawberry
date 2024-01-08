@@ -166,7 +166,11 @@ end
 
 function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
-  self:populate_seeds(action_name)
+  if(self:action_exists(action_name)) then
+    self:populate_seeds(action_name)
+  else
+    return error("No registered action under name: " .. action_name)
+  end
   self:open()
 end
 
