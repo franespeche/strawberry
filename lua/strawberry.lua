@@ -76,6 +76,7 @@ end
 
 local function get_line_content(seed)
   local value, value_visible = pairs(seed.value)
+  P(seed)
   P(value)
   P(value_visible)
   return seed.num .. " " .. (seed.title or "-")
