@@ -47,6 +47,8 @@ local Strawberry = {
 -- Populate seeds with given lines
 function Strawberry:populate_seeds(action)
   local seeds = action.callback()
+  print('populate')
+  P(seeds)
   self.seeds = seeds or {}
 end
 
@@ -177,12 +179,13 @@ end
 function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
   if(self:action_exists(action_name)) then
-    local action = self:get_action(action_name)
-    self:populate_seeds(action)
+    self:populate_seeds(self:get_action(action_name))
+    print('after')
+    P(self.seeds)
+    self:open()
   else
     return error("No registered action under name: " .. action_name)
   end
-  self:open()
 end
 
 return { setup = Strawberry.setup, create_seed = Seed.create }
