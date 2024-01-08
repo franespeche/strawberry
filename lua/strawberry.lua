@@ -169,6 +169,7 @@ function Strawberry:init(action_name)
   if(self:action_exists(action_name)) then
     self:populate_seeds(action_name)
   else
+    P(self.actions)
     return error("No registered action under name: " .. action_name)
   end
   self:open()
