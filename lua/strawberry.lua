@@ -162,10 +162,11 @@ function Strawberry:setup(config)
     if(action_name == "") then return error("Attempted to launch Strawberry with no action name") end
     return Strawberry:init(action_name)
   end, { nargs = '?' })
-
+ 
   vim.api.nvim_create_autocmd('BufLeave', {
-    pattern = "strawberry",
-    callback = function()
+    pattern = { "strawberry"},
+    group = vim.api.nvim_create_augroup("Strawberry", { clear = true }),
+    callback = function(e)
       print('leaving!!')
     end
   })
