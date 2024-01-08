@@ -22,7 +22,7 @@ local Seed = {
 
 function Seed:create(num, value, title, visible, action)
   print('creating seed..')
-  P(value)
+  P(num)
   local obj = {
       num = num,
       value = { value, visible },
