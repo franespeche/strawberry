@@ -92,6 +92,7 @@ function Strawberry:open()
   -- set options
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_set_option('number', false)
+  vim.api.nvim_set_option('relativenumber', false)
   vim.api.nvim_set_option('foldcolumn', "0")
   vim.api.nvim_set_option('foldenable', false)
   vim.api.nvim_set_option('cursorline', true)
