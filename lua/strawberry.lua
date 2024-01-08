@@ -85,7 +85,6 @@ function Strawberry:open()
   -- get the lines to render
   local lines = {}
   for _, seed in pairs(self.seeds) do
-    P(seed)
     table.insert(lines, seed.value[1])
   end
 
@@ -135,6 +134,7 @@ function Strawberry:open()
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
 
   -- set buffer
+  P(lines)
   vim.api.nvim_buf_set_lines(buf, 1, #lines, false, lines)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
