@@ -50,11 +50,11 @@ function Strawberry:populate_seeds(action_name)
   for _, action in pairs(self.actions) do
     if (action.name == action_name) then
       local s = action.callback()
+      P(s)
       table.insert(seeds, s)
       break
     end
   end
-  P(seeds)
 end
 
 function Strawberry:action_exists(action_name)
@@ -173,10 +173,20 @@ function Strawberry:setup(config)
 
 end
 
+function Strawberry:get_action(action_name)
+  for _, action in pairs(self.actions) do
+    if(action.name == action_name) then
+      return action
+    end
+  end
+end
+
 function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
   if(not self:action_exists(action_name)) then
-    self:populate_seeds(action_name)
+    local action = self:get_action(action_name)
+    P(action)
+    self:populate_seeds(action)
   else
     return error("No registered action under name: " .. action_name)
   end
