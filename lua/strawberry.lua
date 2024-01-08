@@ -32,7 +32,7 @@ function Seed:create(num, value, title, visible, action)
 end
 
 function Seed:execute()
-  self.action(self, self.value[1])
+  self.action(self.value[1])
 end
 
 
