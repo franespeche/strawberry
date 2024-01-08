@@ -85,7 +85,7 @@ local function get_line_content(seed)
   end
 
   if(value_visible) then
-    line = "title " .. tostring(seed.num) ..  line .. " " .. value
+    line =  line .. " title_" .. tostring(seed.num) .. " " .. value
   end
   return line
 end
