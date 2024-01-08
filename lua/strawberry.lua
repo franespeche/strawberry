@@ -58,8 +58,9 @@ function Strawberry:populate_seeds(action_name)
 end
 
 function Strawberry:action_exists(action_name)
+    P(self.actions)
   for _, registered_action in pairs(self.actions) do
-    P('self.actions', self.actions)
+    P(registered_action)
     if(registered_action.name == action_name) then
       return true
     end
