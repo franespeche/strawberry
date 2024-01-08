@@ -133,7 +133,7 @@ function Strawberry:open()
 
   -- set buffer
   P(lines)
-  vim.api.nvim_buf_set_lines(buf, 1, #lines, false, lines)
+  vim.api.nvim_buf_set_lines(buf, 0, #lines, false, lines)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
   vim.api.nvim_win_set_buf(win, buf)
