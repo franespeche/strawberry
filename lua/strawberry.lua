@@ -166,7 +166,7 @@ function Strawberry:setup(config)
   vim.api.nvim_create_autocmd('BufLeave', {
     pattern = "strawberry",
     callback = function()
-      P(self.ctx)
+      print('leaving!!')
     end
   })
 
