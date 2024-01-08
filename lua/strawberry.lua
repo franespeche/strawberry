@@ -75,7 +75,7 @@ function Strawberry:register_action(action)
 end
 
 local function get_line_content(seed)
-  local line = tostring(seed.num)
+  local line = "  " .. tostring(seed.num)
 
   local value = seed.value[1]
   local value_visible = seed.value[2]
@@ -153,6 +153,17 @@ function Strawberry:setup(config)
     if(action_name == "") then return error("Attempted to launch Strawberry with no action name") end
     return Strawberry:init(action_name)
   end, { nargs = '?' })
+
+  -- Create highlights
+  if (vim.fn.has("syntax")) then
+    vim.cmd([[
+    syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained
+    syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey
+   
+    hi def link strawberryKey String
+    hi def link strawberryName Type
+    ]])
+  end
 end
 
 function Strawberry:get_action(action_name)
