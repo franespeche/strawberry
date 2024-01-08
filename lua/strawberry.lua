@@ -140,7 +140,7 @@ end
 function Strawberry:setup(config)
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(action_name)
-    print('Strawberry ' .. action_name)
+    print(action_name)
   end, {})
 
   -- Validations
