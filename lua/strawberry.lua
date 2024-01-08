@@ -189,5 +189,5 @@ function Strawberry:init(action_name)
   end
 end
 
-return { setup = Strawberry.setup, create_seed = function(args) return Seed:create(args) end }
+return { setup = Strawberry.setup, create_seed = function(num, value, title, visible, action) return Seed:create(num, value, title, visible, action) end }
 
