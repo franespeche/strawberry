@@ -45,11 +45,18 @@ local Strawberry = {
 
 
 -- Populate seeds with given lines
-function Strawberry:populate_seeds(seeds_type, opts)
-  -- execute action
-  error('Implement populate_seeds')
+function Strawberry:populate_seeds(action_name)
+
 end
 
+function Strawberry:action_exists(action_name)
+  for _, registered_action in pairs(self.actions) do
+    if(registered_action.name == action_name) then
+      return true
+    end
+  end
+  return false
+end
 -- Validates action
 function Strawberry:validate_action(action)
   -- validate fields
@@ -58,11 +65,9 @@ function Strawberry:validate_action(action)
     return false
   end
   -- check if already exists
-  for _, registered_action in pairs(self.actions) do
-    if(registered_action.name == action.name) then
-      error('Action name "' .. action.name .. '" already exists')
-      return false
-    end
+  if (self:action_exists(action.name)) then
+    error('Action name "' .. action.name .. '" already exists')
+    return false
   end
   return true
 end
@@ -139,14 +144,6 @@ function Strawberry:open()
 end
 
 function Strawberry:setup(config)
-  -- Create autocommands
-  vim.api.nvim_create_user_command('Strawberry', function(args)
-    local action_name = args.args
-    if(action_name == "") then
-      error("Attempted to launch Strawberry with no action name")
-    end
-  end, {})
-
   -- Validations
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
 
@@ -157,11 +154,19 @@ function Strawberry:setup(config)
       Strawberry:register_action(action)
     end
   end
+
+  -- Create autocommands
+  vim.api.nvim_create_user_command('Strawberry', function(args)
+    local action_name = args.args
+    if(action_name == "") then return error("Attempted to launch Strawberry with no action name") end
+    return Strawberry:init(action_name)
+  end, {})
+
 end
 
-function Strawberry:init(seeds_type)
+function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
-  self:populate_seeds(seeds_type)
+  self:populate_seeds(action_name)
   self:open()
 end
 
