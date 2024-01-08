@@ -86,6 +86,8 @@ function Strawberry:open()
     table.insert(lines, seed.value[1])
   end
 
+  P(self.seeds)
+  P(lines)
   -- open new split
   vim.cmd('split')
   local win = vim.api.nvim_get_current_win()
