@@ -74,12 +74,17 @@ function Strawberry:register_action(action)
   table.insert(self.actions, action)
 end
 
+local function get_line_content(seed)
+  local value, value_visible = pairs(seed.value)
+  return seed.num .. " " .. seed.title or "-" .. (value_visible and value) or ''
+end
+
 -- Opens buffer with lines
 function Strawberry:open()
   -- get the lines to render
   local lines = {}
   for _, seed in pairs(self.seeds) do
-    table.insert(lines, seed.value[1])
+    table.insert(lines, get_line_content(seed))
   end
 
   -- open new split
