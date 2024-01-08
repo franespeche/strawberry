@@ -75,8 +75,8 @@ function Strawberry:register_action(action)
 end
 
 local function get_line_content(seed)
-  local _, s = pairs(seed)
-  local value, value_visible = pairs(s.value)
+  local value = seed.value[1]
+  local value_visible = seed.value[2]
   P(value)
   P(value_visible)
   return seed.num .. " " .. (seed.title or "-")
