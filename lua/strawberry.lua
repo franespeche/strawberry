@@ -125,6 +125,14 @@ function Strawberry:open()
 -- resize
   vim.cmd('resize ' .. #lines + 1)
 
+  -- Create highlights
+  if (vim.fn.has("syntax")) then
+    vim.cmd([[syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained]])
+    vim.cmd([[syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
+    vim.cmd([[hi def link strawberryKey String]])
+    vim.cmd([[hi def link strawberryName Type]])
+  end
+
   -- <CR> handler
   local function execute_seed()
     local num = vim.api.nvim_win_get_cursor(0)[1]
@@ -170,13 +178,6 @@ function Strawberry:init(action_name)
   if(self:action_exists(action_name)) then
     self:populate_seeds(self:get_action(action_name))
 
-  -- Create highlights
-  if (vim.fn.has("syntax")) then
-    vim.cmd([[syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained]])
-    vim.cmd([[syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
-    vim.cmd([[hi def link strawberryKey String]])
-    vim.cmd([[hi def link strawberryName Type]])
-  end
     self:open()
   else
     return error("No registered action under name: " .. action_name)
