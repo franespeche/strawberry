@@ -157,13 +157,10 @@ function Strawberry:setup(config)
   -- Create highlights
   if (vim.fn.has("syntax")) then
     print('has')
-    vim.cmd([[
-    syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained
-    syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey
-   
-    hi def link strawberryKey String
-    hi def link strawberryName Type
-    ]])
+    vim.cmd([[syn match strawberryKey /\v^\s\s(\d|\a|\s)/ contained]])
+    vim.cmd([[syn match strawberryName /\v^\s\s(\d|\a|\s)\s+.+\s\s/ contains=strawberryKey]])
+    vim.cmd([[hi def link strawberryKey String]])
+    vim.cmd([[hi def link strawberryName Type]])
   end
 end
 
