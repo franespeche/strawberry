@@ -26,9 +26,8 @@ function Seed:create(num, value, title, visible, action)
   return obj
 end
 
-function Seed:execute(ctx)
-  P(ctx)
-  P(self)
+function Seed:execute()
+  P(self.ctx)
   self.action(self.value[1])
 end
 
