@@ -45,16 +45,9 @@ local Strawberry = {
 
 
 -- Populate seeds with given lines
-function Strawberry:populate_seeds(action_name)
-  for _, action in pairs(self.actions) do
-    if (action.name == action_name) then
-      local s = action.callback()
-      print('seeds:')
-      P(s)
-      table.insert(self.seeds, s)
-      break
-    end
-  end
+function Strawberry:populate_seeds(action)
+  local seeds = action.callback()
+  table.insert(self.seeds, seeds)
 end
 
 function Strawberry:action_exists(action_name)
