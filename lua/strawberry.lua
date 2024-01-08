@@ -59,6 +59,7 @@ end
 
 function Strawberry:action_exists(action_name)
   for _, registered_action in pairs(self.actions) do
+    P('self.actions', self.actions)
     if(registered_action.name == action_name) then
       return true
     end
@@ -89,7 +90,6 @@ end
 function Strawberry:open()
   -- get the lines to render
   local lines = {}
-  P(self)
   for _, seed in pairs(self.seeds) do
     table.insert(lines, seed.value[1])
   end
@@ -183,7 +183,7 @@ end
 
 function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
-  if(not self:action_exists(action_name)) then
+  if(self:action_exists(action_name)) then
     local action = self:get_action(action_name)
     P(action)
     self:populate_seeds(action)
