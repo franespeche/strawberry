@@ -139,8 +139,8 @@ end
 
 function Strawberry:setup(config)
   -- Create autocommands
-  vim.api.nvim_create_user_command('SBY', function(action_name)
-    print(action_name)
+  vim.api.nvim_create_user_command('Strawberry', function(args)
+    P(args)
   end, {})
 
   -- Validations
@@ -162,3 +162,4 @@ function Strawberry:init(seeds_type)
 end
 
 return { setup = Strawberry.setup, create_seed = Seed.create }
+
