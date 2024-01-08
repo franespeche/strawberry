@@ -4,7 +4,9 @@
 
 -- helpers
 local open_file = function (file, ctx)
-  vim.api.nvim_win_set_buf(ctx.win, ctx.buf_origin)
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(ctx.win_origin, buf)
+  vim.cmd('e ' .. file)
   vim.api.nvim_buf_delete(ctx.buf, {})
 end
 
@@ -147,6 +149,7 @@ end
 
 function Strawberry:init(action_name)
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
+  self.ctx.win_origin = vim.api.nvim_get_current_win()
   if(self:action_exists(action_name)) then
     self:populate_seeds(self:get_action(action_name))
     self:open()
