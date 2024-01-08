@@ -135,7 +135,7 @@ function Strawberry:open()
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
 
   -- set buffer
-  vim.api.nvim_buf_set_lines(buf, 1, #lines + 1, false, lines)
+  vim.api.nvim_buf_set_lines(buf, 1, #lines, false, lines)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
   vim.api.nvim_win_set_buf(win, buf)
@@ -189,5 +189,10 @@ function Strawberry:init(action_name)
   end
 end
 
-return { setup = Strawberry.setup, create_seed = function(num, value, title, visible, action) return Seed:create(num, value, title, visible, action) end }
+return {
+  setup = Strawberry.setup,
+  create_seed = function(num, value, title, visible, action)
+     return Seed:create(num, value, title, visible, action)
+    end
+  }
 
