@@ -141,7 +141,7 @@ function Strawberry:setup(config)
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(action_name)
     print('Strawberry ' .. action_name)
-  end)
+  end, {})
 
   -- Validations
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
