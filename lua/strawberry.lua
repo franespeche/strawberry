@@ -21,6 +21,8 @@ local Seed = {
 }
 
 function Seed:create(num, value, title, visible, action)
+  print('creating seed..')
+  P(value)
   local obj = {
       num = num,
       value = { value, visible },
