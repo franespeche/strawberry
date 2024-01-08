@@ -112,7 +112,7 @@ function Strawberry:open()
   -- <CR> handler
   local function execute_seed()
     local num = vim.api.nvim_win_get_cursor(0)[1]
-    self.seeds[num]:execute()
+    self.seeds[num]:execute(self.ctx)
   end
   vim.keymap.set("n", "<cr>", function() execute_seed() end, { silent = true, buffer = buf })
 end
@@ -171,11 +171,12 @@ function Seed:create(num, value, title, visible, action)
       title = title,
       action = action or open_file
     }
-  setmetatable(obj, { __index = Strawberry })
+  setmetatable(obj, { __index = Seed })
   return obj
 end
 
-function Seed:execute()
+function Seed:execute(ctx)
+  P(ctx)
   self.action(self.value[1])
 end
 
