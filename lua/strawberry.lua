@@ -123,6 +123,13 @@ function Strawberry:open()
 
   vim.api.nvim_win_set_buf(win, buf)
 
+  vim.api.nvim_create_autocmd('BufLeave', {
+    pattern = { "strawberry"},
+    group = vim.api.nvim_create_augroup("Strawberry", { clear = true }),
+    callback = function(e)
+      print('leaving!!')
+    end
+  })
 -- resize
   vim.cmd('resize ' .. #lines + 1)
 
@@ -163,13 +170,6 @@ function Strawberry:setup(config)
     return Strawberry:init(action_name)
   end, { nargs = '?' })
  
-  vim.api.nvim_create_autocmd('BufLeave', {
-    pattern = { "strawberry"},
-    group = vim.api.nvim_create_augroup("Strawberry", { clear = true }),
-    callback = function(e)
-      print('leaving!!')
-    end
-  })
 
 end
 
