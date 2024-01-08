@@ -62,7 +62,7 @@ local Strawberry = {
 
 -- Populate seeds with given lines
 function Strawberry:populate_seeds(seeds_type, opts)
-  if(seeds_type == 'recent_files') then
+  if(seeds_type == 'git_recent_files') then
     -- setmetatable(self, { __index = Strawberry })
     self.seeds = get_recent_files(opts)
   end
@@ -71,14 +71,18 @@ end
 -- Validates action
 function Strawberry:validate_action(action)
   -- validate fields
-  if(type(action.name) ~= 'string') then return error('"action.name" must be of type "string"') end
-
+  if(type(action.name) ~= 'string') then 
+    error('"action.name" must be of type "string"') 
+    return false
+  end
   -- check if already exists
   for _, registered_action in pairs(self.actions) do
     if(registered_action.name == action.name) then
-      return error('Action name "' .. action.name .. '" already exists')
+      error('Action name "' .. action.name .. '" already exists')
+      return false
     end
   end
+  return true
 end
 
 -- Registers an action
@@ -129,13 +133,14 @@ end
 
 function Strawberry:setup(config)
   -- Validations
-  P(config)
   if(vim.tbl_isempty(config or {})) then return error('Called the setup() method without any config') end
 
   -- Register actions
   for _, action in pairs(config.actions) do
-    Strawberry:validate_action(action)
-    Strawberry:register_action(action)
+    local is_valid = Strawberry:validate_action(action)
+    if(is_valid) then
+      Strawberry:register_action(action)
+    end
   end
 end
 
