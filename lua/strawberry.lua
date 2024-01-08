@@ -64,7 +64,6 @@ function Strawberry:validate_action(action)
   end
   -- check if already exists
   if (self:action_exists(action.name)) then
-    error('Action name "' .. action.name .. '" already exists')
     return false
   end
   return true
