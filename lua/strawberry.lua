@@ -169,8 +169,8 @@ function Strawberry:setup(config)
 
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
-    local action_name = tostring(args.args)
-    P(action_name)
+    local action_name = tostring(args.args[1])
+    print(action_name)
     if(action_name == "") then return error("Attempted to launch Strawberry with no action name") end
     return Strawberry:init(action_name)
   end, {})
