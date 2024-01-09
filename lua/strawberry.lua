@@ -13,7 +13,7 @@ end
 local function get_max_title_length(seeds)
   local max = 0
   for _, seed in pairs(seeds) do
-    if(#seed.title > max) then
+    if(seed.title and #seed.title > max) then
       max = #seed.title
     end
   end
@@ -102,7 +102,6 @@ function Strawberry:register_action(action)
   table.insert(self.actions, action)
 end
 
-
 function Strawberry:get_lines_from_seeds()
   local lines = {}
   local max_title_length = get_max_title_length(self.seeds)
@@ -120,6 +119,8 @@ function Strawberry:open()
   -- Open new split
   local height = vim.fn.min({#lines, 10})
   vim.cmd('botright ' .. height .. ' split')
+
+  -- 
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
   self.ctx.win = win
@@ -177,7 +178,6 @@ function Strawberry:setup(config)
       Strawberry:register_action(action)
     end
   end
-
 
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
