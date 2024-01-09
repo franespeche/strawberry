@@ -10,6 +10,34 @@ local open_file = function (file, ctx)
   vim.cmd('e ' .. file)
 end
 
+local function get_max_title_length(seeds)
+  local max = 0
+  for _, seed in pairs(seeds) do
+    if(#seed.title > max) then
+      max = #seed.title
+    end
+  end
+  return max
+end
+
+local function get_line_content(seed, max_title_length)
+  local spacer = "  "
+  local line = "  " .. tostring(seed.num)
+
+  local value = seed.value[1]
+  local value_visible = seed.value[2]
+
+  if(seed.title and seed.title ~= "") then
+    line = line .. spacer ..seed.title
+  end
+
+  if(value_visible) then
+    local compensate_spaces = string.rep(' ', max_title_length - #seed.title)
+    line =  line .. compensate_spaces .. spacer .. value
+  end
+  return line
+end
+
 -- Seed
 local Seed = {
   num = nil,
@@ -74,22 +102,30 @@ function Strawberry:register_action(action)
   table.insert(self.actions, action)
 end
 
+
+function Strawberry:get_lines_from_seeds()
+  local lines = {}
+  local max_title_length = get_max_title_length(self.seeds)
+  for _, seed in pairs(self.seeds) do
+    table.insert(lines, get_line_content(seed, max_title_length))
+  end
+  return lines
+end
+
 -- Opens buffer with lines
 function Strawberry:open()
-  -- get the lines to render
-  local lines = {}
-  for _, seed in pairs(self.seeds) do
-    table.insert(lines, seed.value[1])
-  end
+  -- Get the lines to render
+  local lines = self:get_lines_from_seeds()
 
-  -- open new split
-  vim.cmd('split')
+  -- Open new split
+  local height = vim.fn.min({#lines, 10})
+  vim.cmd('botright ' .. height .. ' split')
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
   self.ctx.win = win
   self.ctx.buf = buf
 
-  -- set options
+  -- Set options
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_set_option('number', false)
   vim.api.nvim_set_option('relativenumber', false)
@@ -98,6 +134,7 @@ function Strawberry:open()
   vim.api.nvim_set_option('cursorline', true)
   vim.api.nvim_set_option('spell', false)
   vim.api.nvim_set_option('wrap', false)
+  vim.api.nvim_buf_set_option(buf, 'filetype', "strawberry")
   vim.api.nvim_buf_set_option(buf, 'buflisted', false)
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
@@ -106,8 +143,18 @@ function Strawberry:open()
 
   vim.api.nvim_win_set_buf(win, buf)
 
-  -- resize
+  -- Resize split
   vim.cmd('resize ' .. #lines + 1)
+
+  -- Create highlights
+  if (vim.fn.has("syntax")) then
+    vim.cmd([[syntax clear]])
+    vim.cmd([[syntax match strawberryLineNum /\v^\s\s(\d+)/ contained]])
+    vim.cmd([[syntax match strawberryKey /\v^\s\s\d+\s+(.+)\s+/ contains=strawberryLineNum]])
+
+    vim.cmd([[hi def link strawberryLineNum String]])
+    vim.cmd([[hi def link strawberryKey Type]])
+  end
 
   -- <CR> handler
   local function execute_seed()
@@ -131,6 +178,7 @@ function Strawberry:setup(config)
     end
   end
 
+
   -- Create autocommands
   vim.api.nvim_create_user_command('Strawberry', function(args)
     local action_name = args.args
@@ -148,10 +196,23 @@ function Strawberry:get_action(action_name)
 end
 
 function Strawberry:init(action_name)
+  -- Create autocommands
+  vim.api.nvim_create_autocmd('BufLeave', {
+    pattern = "*",
+    -- group = vim.api.nvim_create_augroup("Strawberry", { clear = true }),
+    callback = function(e)
+      if(vim.bo.filetype == "strawberry") then
+        vim.api.nvim_buf_delete(e.buf, {})
+      end
+    end
+  })
+
+
   self.ctx.buf_origin = vim.api.nvim_get_current_buf()
   self.ctx.win_origin = vim.api.nvim_get_current_win()
   if(self:action_exists(action_name)) then
     self:populate_seeds(self:get_action(action_name))
+
     self:open()
   else
     return error("No registered action under name: " .. action_name)
@@ -164,3 +225,4 @@ return {
      return Seed:create(num, value, title, visible, action)
     end
   }
+
