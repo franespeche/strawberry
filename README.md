@@ -15,6 +15,10 @@ https://github.com/franespeche/strawberry/assets/73555733/2de8cb08-f966-4658-afa
 
 ```lua
 -- note that we'll need this method to create each item
+-- @param id: number [will be deprecated]
+-- @param value: The value of the item, will also be passed into the item's action
+-- @param title: The title to be displayed between the item number and the item value
+-- @param action?: Custom action to be executed when selecting the item. Default: open_file
 local create_seed = require("strawberry").create_seed
 
 -- custom logic to generate a list of recent files
