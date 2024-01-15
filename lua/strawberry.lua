@@ -90,9 +90,9 @@ function Strawberry:validate_action(action)
     end
     -- check if action already exists
     for _, registered_action in pairs(self.actions) do
-        if (registered_action.name == action.name) then return true end
+        if (registered_action.name == action.name) then return false end
     end
-    return false
+    return true
 end
 
 -- Registers an action
