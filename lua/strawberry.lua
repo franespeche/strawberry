@@ -21,7 +21,7 @@ local function get_line_content(seed, max_title_length)
     local spacer = "  "
     local line = "  " .. tostring(seed.num)
 
-    local value = seed.value[1]
+    local value = seed.value
 
     if (seed.title and seed.title ~= "") then
         line = line .. spacer .. seed.title
@@ -46,7 +46,7 @@ function Seed:create(num, value, title, action)
     return obj
 end
 
-function Seed:execute() self.action(self.value[1], self.ctx) end
+function Seed:execute() self.action(self.value, self.ctx) end
 
 -- Strawberry
 local Strawberry = {ctx = {}, actions = {}}
