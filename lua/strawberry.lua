@@ -36,9 +36,8 @@ function Seed:execute() self.action(self.value, self.ctx) end
 function Seed:get_line_content(max_title_length)
     local spacer = "  "
     local line = "  " .. tostring(self.num)
-    P(self)
 
-    local value = self.value
+    local value = self.format_value(self.value)
 
     if (self.title and self.title ~= "") then
         line = line .. spacer .. self.title
@@ -178,19 +177,19 @@ function Strawberry:init(action_name)
     -- Create autocommands
     vim.api.nvim_create_autocmd('BufLeave', {
         pattern = "*",
-        -- group = vim.api.nvim_create_augroup("Strawberry", { clear = true }),
+        group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
         callback = function(e)
             if (vim.bo.filetype == "strawberry") then
                 vim.api.nvim_buf_delete(e.buf, {})
             end
         end
     })
-
     self.ctx.buf_origin = vim.api.nvim_get_current_buf()
     self.ctx.win_origin = vim.api.nvim_get_current_win()
     if (self:action_exists(action_name)) then
-        self:populate_seeds(self:get_action(action_name))
-
+        local action = self:get_action(action_name)
+        self.format_value = action.format_value
+        self:populate_seeds(action)
         self:open()
     else
         return error("No registered action under name: " .. action_name)
