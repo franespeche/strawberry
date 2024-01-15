@@ -17,22 +17,6 @@ local function get_max_title_length(seeds)
     return max
 end
 
-local function get_line_content(seed, max_title_length)
-    local spacer = "  "
-    local line = "  " .. tostring(seed.num)
-    P(self)
-
-    local value = seed.value
-
-    if (seed.title and seed.title ~= "") then
-        line = line .. spacer .. seed.title
-    end
-
-    local compensate_spaces = string.rep(' ', max_title_length - #seed.title)
-    line = line .. compensate_spaces .. spacer .. value
-    return line
-end
-
 -- Seed
 local Seed = {num = nil, title = nil, value = nil, action = nil}
 
@@ -48,6 +32,22 @@ function Seed:create(num, value, title, action)
 end
 
 function Seed:execute() self.action(self.value, self.ctx) end
+
+function Seed:get_line_content(max_title_length)
+    local spacer = "  "
+    local line = "  " .. tostring(self.num)
+    P(self)
+
+    local value = self.value
+
+    if (self.title and self.title ~= "") then
+        line = line .. spacer .. self.title
+    end
+
+    local compensate_spaces = string.rep(' ', max_title_length - #self.title)
+    line = line .. compensate_spaces .. spacer .. value
+    return line
+end
 
 -- Strawberry
 local Strawberry = {ctx = {}, actions = {}}
@@ -84,7 +84,7 @@ function Strawberry:get_lines_from_seeds()
     local lines = {}
     local max_title_length = get_max_title_length(self.seeds)
     for _, seed in pairs(self.seeds) do
-        table.insert(lines, get_line_content(seed, max_title_length))
+        table.insert(lines, seed:get_line_content(max_title_length))
     end
     return lines
 end
