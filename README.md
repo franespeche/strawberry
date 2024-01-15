@@ -35,9 +35,7 @@ local show_recent_files = {
     while (i <= #oldfiles and (#seeds < limit or i < 10)) do
       local file = oldfiles[i]
       if (vim.fn.filereadable(file) == 1) then
-        -- implementing the `create_seed` method
-        -- TODO: remove the first "id" parameter (#seeds + 1) as it might be confusing
-        local seed = create_seed(#seeds + 1, file, get_filename(file), true)
+        local seed = create_seed(#seeds + 1, file, get_filename(file))
         table.insert(seeds, seed)
       end
       i = i + 1
