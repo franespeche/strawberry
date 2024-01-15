@@ -20,6 +20,7 @@ end
 local function get_line_content(seed, max_title_length)
     local spacer = "  "
     local line = "  " .. tostring(seed.num)
+    P(self)
 
     local value = seed.value
 
