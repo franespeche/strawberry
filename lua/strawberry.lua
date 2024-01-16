@@ -151,6 +151,7 @@ function Strawberry:get_action(action_name)
 end
 
 function Strawberry:setup(props)
+    setmetatable(self, {__index = Strawberry})
     setmetatable(Seed, {__index = Strawberry})
     -- Validate config
     if (vim.tbl_isempty(props or {})) then
