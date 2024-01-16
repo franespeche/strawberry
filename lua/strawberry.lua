@@ -165,7 +165,7 @@ function Strawberry:setup(props)
     end
 
     -- Register config
-    for k, v in pairs(props.config or {}) do self.config[k] = v end
+    -- for k, v in pairs(props.config or {}) do self.config[k] = v end
 
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
