@@ -158,6 +158,8 @@ function Strawberry:setup(props)
     end
     -- Register actions
     for _, action in pairs(props.actions or {}) do
+
+        P(self.actions)
         if (Strawberry:validate_action(action)) then
             Strawberry:register_action(action)
         end
@@ -165,7 +167,6 @@ function Strawberry:setup(props)
 
     -- Register config
     for k, v in pairs(props.config or {}) do
-        P(self.config)
         -- table.insert(self.config, {[k] = v})
     end
 
