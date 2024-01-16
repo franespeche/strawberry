@@ -169,6 +169,7 @@ function Strawberry:setup(props)
     -- Register config
     for k, v in pairs(props.config or {}) do
         Strawberry:register_config({[k] = v})
+        P(self.config)
     end
 
     -- Create autocommands
