@@ -96,7 +96,6 @@ end
 
 -- Registrators
 function Strawberry:register_action(action) table.insert(self.actions, action) end
-function Strawberry:register_config(cfg) table.insert(self.config, cfg) end
 
 function Strawberry:get_lines_from_seeds()
     local lines = {}
@@ -166,10 +165,7 @@ function Strawberry:setup(props)
     end
 
     -- Register config
-    for k, v in pairs(props.config or {}) do
-        local cfg = {[k] = v}
-        Strawberry:register_config(cfg)
-    end
+    for k, v in pairs(props.config or {}) do self[k] = v end
 
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
