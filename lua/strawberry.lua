@@ -165,8 +165,7 @@ function Strawberry:setup(config)
 
     -- Register config
     for k, v in pairs(config.config or {}) do
-        P({[k] = v})
-        -- table.insert(self.config, {k = v})
+        table.insert(self.config, {[k] = v})
     end
 
     -- Create autocommands
