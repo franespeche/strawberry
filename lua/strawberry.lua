@@ -160,15 +160,15 @@ function Strawberry:setup(props)
     end
     -- Register actions
     for _, action in pairs(props.actions or {}) do
-
         if (Strawberry:validate_action(action)) then
             Strawberry:register_action(action)
         end
     end
 
     -- Register config
-    for k, v in pairs(props.config or {}) do
-        Strawberry:register_config({[k] = v})
+    for cfg in pairs(props.config or {}) do
+        Strawberry:register_config(cfg)
+        P(cfg)
         P(self.config)
     end
 
