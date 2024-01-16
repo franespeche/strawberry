@@ -112,7 +112,7 @@ function Strawberry:open()
     local lines = self:get_lines_from_seeds()
 
     -- Open new split
-    local height = vim.fn.min({#lines, self.config.window_height})
+    local height = vim.fn.min({#lines, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
 
     -- 
