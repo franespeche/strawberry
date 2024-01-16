@@ -174,7 +174,6 @@ function Strawberry:setup(config)
 end
 
 function Strawberry:init(action_name)
-    local start_time = os.clock()
     local action = self:get_action(action_name)
     if (not action) then
         return error("No registered action under name: " .. action_name)
@@ -196,9 +195,6 @@ function Strawberry:init(action_name)
     self.format_value = action.format_value
     self:populate_seeds(action)
     self:open()
-    local end_time = os.clock()
-    local execution_time = end_time - start_time
-    P(execution_time)
 end
 
 return {
