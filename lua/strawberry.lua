@@ -72,7 +72,7 @@ local function get_max_title_length(seeds)
 end
 
 -- Strawberry
-local Strawberry = {ctx = {}, actions = {}}
+local Strawberry = {ctx = {}, actions = {}, config = {window_height = 5}}
 
 -- Populates seeds with given lines
 function Strawberry:populate_seeds(action)
@@ -94,7 +94,7 @@ function Strawberry:validate_action(action)
     return true
 end
 
--- Registers an action
+-- Registrators
 function Strawberry:register_action(action) table.insert(self.actions, action) end
 
 function Strawberry:get_lines_from_seeds()
@@ -112,7 +112,7 @@ function Strawberry:open()
     local lines = self:get_lines_from_seeds()
 
     -- Open new split
-    local height = vim.fn.min({#lines, 10})
+    local height = vim.fn.min({#lines, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
 
     -- 
@@ -131,7 +131,7 @@ function Strawberry:open()
     vim.api.nvim_win_set_buf(win, buf)
 
     -- Resize split
-    vim.cmd('resize ' .. #lines + 1)
+    -- vim.cmd('resize ' .. #lines + 1)
 
     -- Set highlights
     set_highlights()
@@ -150,18 +150,23 @@ function Strawberry:get_action(action_name)
     return nil
 end
 
-function Strawberry:setup(config)
+function Strawberry:setup(props)
+    setmetatable(self, {__index = Strawberry})
     setmetatable(Seed, {__index = Strawberry})
     -- Validate config
-    if (vim.tbl_isempty(config or {})) then
+    if (vim.tbl_isempty(props or {})) then
         return error('Called setup() method without any config')
     end
     -- Register actions
-    for _, action in pairs(config.actions) do
+    for _, action in pairs(props.actions or {}) do
         if (Strawberry:validate_action(action)) then
             Strawberry:register_action(action)
         end
     end
+
+    -- Register config
+    for k, v in pairs(props.config or {}) do self.config[k] = v end
+
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
         local action_name = args.args
