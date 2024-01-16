@@ -94,8 +94,9 @@ function Strawberry:validate_action(action)
     return true
 end
 
--- Registers an action
+-- Registrators
 function Strawberry:register_action(action) table.insert(self.actions, action) end
+function Strawberry:register_config(cfg) table.insert(self.config, cfg) end
 
 function Strawberry:get_lines_from_seeds()
     local lines = {}
@@ -159,7 +160,6 @@ function Strawberry:setup(props)
     -- Register actions
     for _, action in pairs(props.actions or {}) do
 
-        P(self.actions)
         if (Strawberry:validate_action(action)) then
             Strawberry:register_action(action)
         end
@@ -167,7 +167,7 @@ function Strawberry:setup(props)
 
     -- Register config
     for k, v in pairs(props.config or {}) do
-        -- table.insert(self.config, {[k] = v})
+        Strawberry:register_action({[k] = v})
     end
 
     -- Create autocommands
