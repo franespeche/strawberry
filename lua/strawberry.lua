@@ -112,8 +112,7 @@ function Strawberry:open()
     local lines = self:get_lines_from_seeds()
 
     -- Open new split
-    P(self)
-    local height = vim.fn.min({#lines, 10})
+    local height = vim.fn.min({#lines, self.config.window_height or 10})
     vim.cmd('botright ' .. height .. ' split')
 
     -- 
@@ -158,11 +157,17 @@ function Strawberry:setup(config)
         return error('Called setup() method without any config')
     end
     -- Register actions
-    for _, action in pairs(config.actions) do
+    for _, action in pairs(config.actions or {}) do
         if (Strawberry:validate_action(action)) then
             Strawberry:register_action(action)
         end
     end
+
+    -- Register config
+    for _, cfg in pairs(config.config or {}) do
+        table.insert(self.config, cfg)
+    end
+
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
         local action_name = args.args
