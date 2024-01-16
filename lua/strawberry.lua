@@ -150,22 +150,23 @@ function Strawberry:get_action(action_name)
     return nil
 end
 
-function Strawberry:setup(config)
+function Strawberry:setup(props)
     setmetatable(Seed, {__index = Strawberry})
     -- Validate config
-    if (vim.tbl_isempty(config or {})) then
+    if (vim.tbl_isempty(props or {})) then
         return error('Called setup() method without any config')
     end
     -- Register actions
-    for _, action in pairs(config.actions or {}) do
+    for _, action in pairs(props.actions or {}) do
         if (Strawberry:validate_action(action)) then
             Strawberry:register_action(action)
         end
     end
 
     -- Register config
-    for k, v in pairs(config.config or {}) do
-        table.insert(self.config, {[k] = v})
+    for k, v in pairs(props.config or {}) do
+        P(self.config)
+        -- table.insert(self.config, {[k] = v})
     end
 
     -- Create autocommands
