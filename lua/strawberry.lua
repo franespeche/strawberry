@@ -72,7 +72,7 @@ local function get_max_title_length(seeds)
 end
 
 -- Strawberry
-local Strawberry = {ctx = {}, actions = {}, config = {}}
+local Strawberry = {ctx = {}, actions = {}, config = {window_height = 5}}
 
 -- Populates seeds with given lines
 function Strawberry:populate_seeds(action)
@@ -112,7 +112,6 @@ function Strawberry:open()
     local lines = self:get_lines_from_seeds()
 
     -- Open new split
-    P(self.config)
     local height = vim.fn.min({#lines, self.config.window_height or 10})
     vim.cmd('botright ' .. height .. ' split')
 
