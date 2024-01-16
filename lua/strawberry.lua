@@ -72,7 +72,7 @@ local function get_max_title_length(seeds)
 end
 
 -- Strawberry
-local Strawberry = {ctx = {}, actions = {}}
+local Strawberry = {ctx = {}, actions = {}, config = {}}
 
 -- Populates seeds with given lines
 function Strawberry:populate_seeds(action)
