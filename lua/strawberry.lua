@@ -113,7 +113,6 @@ function Strawberry:open()
     local lines = self:get_lines_from_seeds()
 
     -- Open new split
-    P(self.config)
     local height = vim.fn.min({#lines, self.config.window_height or 10})
     vim.cmd('botright ' .. height .. ' split')
 
@@ -168,7 +167,7 @@ function Strawberry:setup(props)
 
     -- Register config
     for k, v in pairs(props.config or {}) do
-        Strawberry:register_action({[k] = v})
+        Strawberry:register_config({[k] = v})
     end
 
     -- Create autocommands
