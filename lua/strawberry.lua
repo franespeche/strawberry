@@ -1,4 +1,3 @@
-local s = require 'seed'
 -- Seed
 local Seed = {num = nil, title = nil, value = nil, action = nil}
 
