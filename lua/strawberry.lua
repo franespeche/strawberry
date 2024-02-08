@@ -115,7 +115,8 @@ function Strawberry:open()
     local height = vim.fn.min({#lines, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
 
-    -- 
+    return
+    --[[
     local win = vim.api.nvim_get_current_win()
     local buf = vim.api.nvim_create_buf(false, true)
     self.ctx.win = win
@@ -141,6 +142,7 @@ function Strawberry:open()
         local num = vim.api.nvim_win_get_cursor(0)[1]
         self.seeds[num]:execute(self.ctx)
     end, {silent = true, buffer = buf})
+    ]] --
 end
 
 function Strawberry:get_action(action_name)
