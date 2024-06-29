@@ -6,7 +6,6 @@ local Item = {num = nil, title = nil, value = nil, action = nil}
 
 -- TODO: get this from an object
 function Item:create(opts)
-    P(opts)
     local obj = {
         num = opts.num,
         value = opts.value,
