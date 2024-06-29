@@ -156,7 +156,8 @@ function Strawberry:init(action_name)
 
     -- Create autocommands
     -- Auto close menu on BufLeave
-    if (self.config.auto_close) then
+    P(self.config.auto_close)
+    if self.config.auto_close then
         vim.api.nvim_create_autocmd('BufLeave', {
             pattern = "*",
             group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
