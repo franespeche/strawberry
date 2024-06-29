@@ -138,8 +138,6 @@ function Strawberry:setup(props)
     -- Register config
     for k, v in pairs(props.config or {}) do self.config[k] = v end
 
-    P(self.config)
-
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
         local action_name = args.args
@@ -155,17 +153,21 @@ function Strawberry:init(action_name)
     if (not action) then
         return error("No registered action under name: " .. action_name)
     end
+
     -- Create autocommands
-    -- TODO: enable this if config.auto_close is true
-    vim.api.nvim_create_autocmd('BufLeave', {
-        pattern = "*",
-        group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
-        callback = function(e)
-            if (vim.bo.filetype == "strawberry") then
-                vim.api.nvim_buf_delete(e.buf, {})
+    -- Auto close menu on BufLeave
+    if (self.config.auto_close) then
+        vim.api.nvim_create_autocmd('BufLeave', {
+            pattern = "*",
+            group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
+            callback = function(e)
+                if (vim.bo.filetype == "strawberry") then
+                    vim.api.nvim_buf_delete(e.buf, {})
+                end
             end
-        end
-    })
+        })
+    end
+
     -- Save context
     self.ctx.buf_origin = vim.api.nvim_get_current_buf()
     self.ctx.win_origin = vim.api.nvim_get_current_win()
