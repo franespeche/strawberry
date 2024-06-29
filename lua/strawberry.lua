@@ -65,10 +65,10 @@ local function set_options(buf)
     vim.api.nvim_buf_set_option(buf, 'swapfile', false)
 end
 
-local function get_max_title_length(seeds)
+local function get_max_title_length(items)
     local max = 0
-    for _, seed in pairs(seeds) do
-        if (seed.title and #seed.title > max) then max = #seed.title end
+    for _, item in pairs(items) do
+        if (item.title and #item.title > max) then max = #item.title end
     end
     return max
 end
@@ -79,10 +79,10 @@ local default_config = {window_height = 5, auto_close = true}
 -- Strawberry
 local Strawberry = {ctx = {}, actions = {}, config = default_config}
 
--- Populates seeds with given lines
-function Strawberry:populate_seeds(action)
-    local seeds = action.callback()
-    self.seeds = seeds or {}
+-- Populates items with given lines
+function Strawberry:populate_items(action)
+    local items = action.callback()
+    self.items = items or {}
 end
 
 -- Validates action
@@ -102,11 +102,11 @@ end
 -- Registrators
 function Strawberry:register_action(action) table.insert(self.actions, action) end
 
-function Strawberry:get_lines_from_seeds()
+function Strawberry:get_lines_from_items()
     local lines = {}
-    local max_title_length = get_max_title_length(self.seeds)
-    for _, seed in pairs(self.seeds) do
-        table.insert(lines, seed:get_line_content(max_title_length))
+    local max_title_length = get_max_title_length(self.items)
+    for _, item in pairs(self.items) do
+        table.insert(lines, item:get_line_content(max_title_length))
     end
     return lines
 end
@@ -114,7 +114,7 @@ end
 -- Opens buffer with lines
 function Strawberry:open()
     -- Get the lines to render
-    local lines = self:get_lines_from_seeds()
+    local lines = self:get_lines_from_items()
 
     -- Open new split
     local height = vim.fn.min({#lines, self.config.window_height}) + 1
@@ -145,7 +145,7 @@ function Strawberry:open()
     -- <CR> handler
     vim.keymap.set("n", "<cr>", function()
         local num = vim.api.nvim_win_get_cursor(0)[1]
-        self.seeds[num]:execute(self.ctx)
+        self.items[num]:execute(self.ctx)
     end, {silent = true, buffer = buf})
     ]] --
 end
@@ -205,7 +205,7 @@ function Strawberry:init(action_name)
     self.ctx.win_origin = vim.api.nvim_get_current_win()
     -- Hack: save formatter method
     self.format_value = action.format_value
-    self:populate_seeds(action)
+    self:populate_items(action)
     self:open()
 end
 
