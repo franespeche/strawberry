@@ -5,12 +5,13 @@ local utils = require('utils')
 local Item = {num = nil, title = nil, value = nil, action = nil}
 
 -- TODO: get this from an object
-function Item:create(num, value, title, action)
+function Item:create(opts)
+    P(opts)
     local obj = {
-        num = num,
-        value = value,
-        title = title,
-        action = action or utils.open_file
+        num = opts.num,
+        value = opts.value,
+        title = opts.title,
+        action = opts.action or utils.open_file
     }
     setmetatable(obj, {__index = Item})
     return obj
