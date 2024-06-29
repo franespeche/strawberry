@@ -38,10 +38,10 @@ local function get_max_title_length(items)
 end
 
 -- Set default config
-local default_config = {window_height = 5, auto_close = true}
+local DEFAULT_CONFIG = {window_height = 5, auto_close = true}
 
 -- Strawberry
-local Strawberry = {ctx = {}, actions = {}, config = default_config}
+local Strawberry = {ctx = {}, actions = {}, config = DEFAULT_CONFIG}
 
 -- Populates items with given lines
 function Strawberry:populate_items(action)
@@ -122,10 +122,12 @@ end
 function Strawberry:setup(props)
     setmetatable(self, {__index = Strawberry})
     setmetatable(Item, {__index = Strawberry})
+
     -- Validate config
     if (vim.tbl_isempty(props or {})) then
         return error('Called setup() method without any config')
     end
+
     -- Register actions
     for _, action in pairs(props.actions or {}) do
         if (Strawberry:validate_action(action)) then
@@ -135,6 +137,8 @@ function Strawberry:setup(props)
 
     -- Register config
     for k, v in pairs(props.config or {}) do self.config[k] = v end
+
+    P(self.config)
 
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
