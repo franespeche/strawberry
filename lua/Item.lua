@@ -4,7 +4,6 @@ local utils = require('utils')
 -- Item
 local Item = {num = nil, title = nil, value = nil, action = nil}
 
--- TODO: get this from an object
 function Item:create(opts)
     local obj = {
         num = opts.num,
