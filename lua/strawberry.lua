@@ -1,5 +1,5 @@
 -- Utils
-local open_file = require('strawberry.utils').open_file
+local utils = require('utils')
 
 -- Item
 local Item = {num = nil, title = nil, value = nil, action = nil}
@@ -10,7 +10,7 @@ function Item:create(num, value, title, action)
         num = num,
         value = value,
         title = title,
-        action = action or open_file
+        action = action or utils.open_file
     }
     setmetatable(obj, {__index = Item})
     return obj
@@ -203,6 +203,7 @@ function Strawberry:init(action_name)
 end
 
 return {
+    utils = utils,
     setup = Strawberry.setup,
     create_item = function(num, value, title, action)
         return Item:create(num, value, title, action)
