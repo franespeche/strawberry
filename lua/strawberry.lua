@@ -1,27 +1,29 @@
--- Seed
-local Seed = {num = nil, title = nil, value = nil, action = nil}
+-- Item
+local Item = {num = nil, title = nil, value = nil, action = nil}
 
 local open_file = function(file, ctx)
     vim.api.nvim_buf_delete(ctx.buf, {})
+    -- TODO: possible bug, maybe if possible we should use the buffer from where we came from instead of creating a new one
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_win_set_buf(ctx.win_origin, buf)
     vim.cmd('e ' .. file)
 end
 
-function Seed:create(num, value, title, action)
+-- TODO: get this from an object
+function Item:create(num, value, title, action)
     local obj = {
         num = num,
         value = value,
         title = title,
         action = action or open_file
     }
-    setmetatable(obj, {__index = Seed})
+    setmetatable(obj, {__index = Item})
     return obj
 end
 
-function Seed:execute() self.action(self.value, self.ctx) end
+function Item:execute() self.action(self.value, self.ctx) end
 
-function Seed:get_line_content(max_title_length)
+function Item:get_line_content(max_title_length)
     local spacer = "  "
     local line = "  " .. tostring(self.num)
 
@@ -71,8 +73,11 @@ local function get_max_title_length(seeds)
     return max
 end
 
+-- Set default config
+local default_config = {window_height = 5, auto_close = true}
+
 -- Strawberry
-local Strawberry = {ctx = {}, actions = {}, config = {window_height = 5}}
+local Strawberry = {ctx = {}, actions = {}, config = default_config}
 
 -- Populates seeds with given lines
 function Strawberry:populate_seeds(action)
@@ -154,7 +159,7 @@ end
 
 function Strawberry:setup(props)
     setmetatable(self, {__index = Strawberry})
-    setmetatable(Seed, {__index = Strawberry})
+    setmetatable(Item, {__index = Strawberry})
     -- Validate config
     if (vim.tbl_isempty(props or {})) then
         return error('Called setup() method without any config')
@@ -185,6 +190,7 @@ function Strawberry:init(action_name)
         return error("No registered action under name: " .. action_name)
     end
     -- Create autocommands
+    -- TODO: enable this if config.auto_close is true
     vim.api.nvim_create_autocmd('BufLeave', {
         pattern = "*",
         group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
@@ -205,7 +211,7 @@ end
 
 return {
     setup = Strawberry.setup,
-    create_seed = function(num, value, title, action)
-        return Seed:create(num, value, title, action)
+    create_item = function(num, value, title, action)
+        return Item:create(num, value, title, action)
     end
 }
