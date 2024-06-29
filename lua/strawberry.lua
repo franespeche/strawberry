@@ -158,15 +158,15 @@ function Strawberry:init(action_name)
     -- Auto close menu on BufLeave
     if self.config.auto_close then
         P('inside')
-        vim.api.nvim_create_autocmd('BufLeave', {
-            pattern = "*",
-            group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
-            callback = function(e)
-                if (vim.bo.filetype == "strawberry") then
-                    vim.api.nvim_buf_delete(e.buf, {})
-                end
-            end
-        })
+        -- vim.api.nvim_create_autocmd('BufLeave', {
+        -- pattern = "*",
+        -- group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
+        -- callback = function(e)
+        -- if (vim.bo.filetype == "strawberry") then
+        -- vim.api.nvim_buf_delete(e.buf, {})
+        -- end
+        -- end
+        -- })
     end
 
     -- Save context
