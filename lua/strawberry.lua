@@ -1,13 +1,8 @@
+-- Utils
+local open_file = require('strawberry.utils').open_file
+
 -- Item
 local Item = {num = nil, title = nil, value = nil, action = nil}
-
-local open_file = function(file, ctx)
-    vim.api.nvim_buf_delete(ctx.buf, {})
-    -- TODO: possible bug, maybe if possible we should use the buffer from where we came from instead of creating a new one
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_win_set_buf(ctx.win_origin, buf)
-    vim.cmd('e ' .. file)
-end
 
 -- TODO: get this from an object
 function Item:create(num, value, title, action)
