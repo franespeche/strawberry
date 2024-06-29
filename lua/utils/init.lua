@@ -18,7 +18,12 @@ local function get_filename(path)
     return path:match(pattern) or "-"
 end
 
+local function is_git_directory()
+    return vim.api.nvim_exec("!git rev-parse --is-inside-work-tree", true)
+end
+
 local M = {
+    is_git_directory = is_git_directory,
     open_file = open_file,
     get_home_path = get_home_path,
     remove_home_path = remove_home_path,
