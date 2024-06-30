@@ -2,51 +2,17 @@
 local Item = require('Item')
 local utils = require('utils')
 
--- Helpers
-local function set_highlights()
-    if (vim.fn.has("syntax")) then
-        vim.cmd([[syntax clear]])
-        vim.cmd([[syntax match strawberryLineNum /\v^\s\s(\d+)/ contained]])
-        vim.cmd(
-            [[syntax match strawberryKey /\v^\s\s\d+\s+(.+)\s+/ contains=strawberryLineNum]])
-
-        vim.cmd([[hi def link strawberryLineNum String]])
-        vim.cmd([[hi def link strawberryKey Type]])
-    end
-end
-
-local function set_options(buf)
-    vim.api.nvim_set_option('number', false)
-    vim.api.nvim_set_option('relativenumber', false)
-    vim.api.nvim_set_option('foldcolumn', "0")
-    vim.api.nvim_set_option('foldenable', false)
-    vim.api.nvim_set_option('cursorline', true)
-    vim.api.nvim_set_option('spell', false)
-    vim.api.nvim_set_option('wrap', false)
-    vim.api.nvim_buf_set_option(buf, 'filetype', "strawberry")
-    vim.api.nvim_buf_set_option(buf, 'buflisted', false)
-    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-end
-
-local function get_max_title_length(items)
-    local max = 0
-    for _, item in pairs(items) do
-        if (item.title and #item.title > max) then max = #item.title end
-    end
-    return max
-end
-
--- Set default config
+-- Constants
 local DEFAULT_CONFIG = {window_height = 5, auto_close = true}
 
 -- Strawberry
 local Strawberry = {ctx = {}, actions = {}, config = DEFAULT_CONFIG}
 
--- Populates items with given lines
-function Strawberry:populate_items(action)
-    local items = action.callback()
+-- Generates items
+function Strawberry:generate_items(action)
+    local items = action.get_items()
     self.items = items or {}
+    return items
 end
 
 -- Validates action
@@ -56,7 +22,7 @@ function Strawberry:validate_action(action)
         error('"action.name" must be of type "string"')
         return false
     end
-    -- check if action already exists
+    -- check if the action already exists
     for _, registered_action in pairs(self.actions) do
         if (registered_action.name == action.name) then return false end
     end
@@ -66,44 +32,37 @@ end
 -- Registrators
 function Strawberry:register_action(action) table.insert(self.actions, action) end
 
-function Strawberry:get_lines_from_items()
+function Strawberry:get_parsed_items(items)
     local lines = {}
-    local max_title_length = get_max_title_length(self.items)
-    for _, item in pairs(self.items) do
+    local max_title_length = utils.get_max_title_length(items)
+    for _, item in pairs(items) do
         table.insert(lines, item:get_line_content(max_title_length))
     end
     return lines
 end
 
--- Opens buffer with lines
-function Strawberry:open()
-    -- Get the lines to render
-    local lines = self:get_lines_from_items()
-
+-- Renders main buffer
+function Strawberry:render(lines)
     -- Open new split
     local height = vim.fn.min({#lines, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
 
-    -- return
     local win = vim.api.nvim_get_current_win()
     local buf = vim.api.nvim_create_buf(false, true)
     self.ctx.win = win
     self.ctx.buf = buf
 
     -- Set options
-    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-    set_options(buf)
+    utils.set_options(buf)
 
-    -- Fill buffer with lines
+    -- Fill main buffer and focus
     vim.api.nvim_buf_set_lines(buf, 0, #lines, false, lines)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
     vim.api.nvim_win_set_buf(win, buf)
 
-    -- Resize split
-    -- vim.cmd('resize ' .. #lines + 1)
+    -- lock main buffer
+    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
-    -- Set highlights
-    set_highlights()
+    utils.set_highlights()
 
     -- <CR> handler
     vim.keymap.set("n", "<cr>", function()
@@ -119,14 +78,18 @@ function Strawberry:get_action(action_name)
     return nil
 end
 
+local function validate_setup_config(cfg)
+    if (vim.tbl_isempty(cfg or {})) then
+        return error('Called setup() method without any config')
+    end
+end
+
 function Strawberry:setup(props)
     setmetatable(self, {__index = Strawberry})
     setmetatable(Item, {__index = Strawberry})
 
     -- Validate config
-    if (vim.tbl_isempty(props or {})) then
-        return error('Called setup() method without any config')
-    end
+    validate_setup_config(props)
 
     -- Register actions
     for _, action in pairs(props.actions or {}) do
@@ -168,21 +131,23 @@ function Strawberry:init(action_name)
     -- Save context
     self.ctx.buf_origin = vim.api.nvim_get_current_buf()
     self.ctx.win_origin = vim.api.nvim_get_current_win()
-    -- Hack: save formatter method
-    self.format_value = action.format_value
-    self:populate_items(action)
-    self:open()
+
+    -- Each item constitutes a line in the main buffer
+    local items = self:generate_items(action)
+    local parsed_items = self:get_parsed_items(items)
+
+    self:render(parsed_items)
 end
 
 return {
-    utils = utils,
     setup = Strawberry.setup,
-    create_item = function(opts)
-        return Item:create({
-            num = opts.num,
-            value = opts.value,
-            title = opts.title,
-            action = opts.action
-        })
-    end
+    create_item = function(opts) return Item:create(opts) end,
+    -- public utils
+    utils = {
+        is_git_directory = utils.is_git_directory,
+        open_file = utils.open_file,
+        get_home_path = utils.get_home_path,
+        remove_home_path = utils.remove_home_path,
+        get_filename = utils.get_filename
+    }
 }
