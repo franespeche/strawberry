@@ -6,7 +6,7 @@ local utils = require('utils')
 local function delete_buffer(buf) vim.api.nvim_buf_delete(buf, {force = true}) end
 
 local function set_auto_close(config)
-    -- Clear any existing autocommands to support different actions with potential different auto_close configs
+    -- Clear any existing autocommands to support different pickers with potential different auto_close configs
     local augroup = vim.api.nvim_create_augroup("Strawberry", {clear = true})
     vim.api.nvim_clear_autocmds({group = augroup})
 
@@ -25,7 +25,7 @@ local function set_auto_close(config)
     end
 end
 
-local function delete_buffers_by_filetype(filetype, action)
+local function delete_buffers_by_filetype(filetype, picker)
     -- Get a list of all buffer handles
     local buffers = vim.api.nvim_list_bufs()
 
@@ -35,8 +35,8 @@ local function delete_buffers_by_filetype(filetype, action)
         if vim.api.nvim_buf_is_loaded(buf) then
             local buf_filetype = vim.api.nvim_buf_get_option(buf, 'filetype')
             if buf_filetype == filetype then
-                -- Perform the desired action on the buffer
-                action(buf)
+                -- Perform the desired picker on the buffer
+                picker(buf)
             end
         end
     end
@@ -46,40 +46,40 @@ end
 local DEFAULT_CONFIG = {window_height = 5, auto_close = true}
 
 -- Strawberry
-local Strawberry = {ctx = {}, actions = {}, config = DEFAULT_CONFIG}
+local Strawberry = {ctx = {}, pickers = {}, config = DEFAULT_CONFIG}
 
--- Validates action
-function Strawberry:validate_action(action)
+-- Validates picker
+function Strawberry:validate_picker(picker)
     -- validate fields
-    if (not action.name) then
-        error('"action.name" must be defined')
+    if (not picker.name) then
+        error('"picker.name" must be defined')
         return false
     end
-    if (type(action.name) ~= 'string') then
-        error('"action.name" must be of type "string"')
-        return false
-    end
-
-    if (not action.get_items) then
-        error('"action.get_items" must be defined')
-        return false
-    end
-    if (type(action.get_items) ~= 'function') then
-        error('"action.get_items" must be of type "function"')
+    if (type(picker.name) ~= 'string') then
+        error('"picker.name" must be of type "string"')
         return false
     end
 
-    -- check if the action already exists
-    for _, registered_action in pairs(self.actions) do
-        if (registered_action.name == action.name) then return false end
+    if (not picker.get_items) then
+        error('"picker.get_items" must be defined')
+        return false
+    end
+    if (type(picker.get_items) ~= 'function') then
+        error('"picker.get_items" must be of type "function"')
+        return false
+    end
+
+    -- check if the picker already exists
+    for _, registered_picker in pairs(self.pickers) do
+        if (registered_picker.name == picker.name) then return false end
     end
     return true
 end
 
 -- Registrators
-function Strawberry:register_action(action)
-    -- Register action
-    table.insert(self.actions, action)
+function Strawberry:register_picker(picker)
+    -- Register picker
+    table.insert(self.pickers, picker)
 end
 
 function Strawberry:get_parsed_items(items)
@@ -121,9 +121,9 @@ function Strawberry:render(lines)
     end, {silent = true, buffer = strawberry_buf})
 end
 
-function Strawberry:get_action(action_name)
-    for _, action in pairs(self.actions) do
-        if (action.name == action_name) then return action end
+function Strawberry:get_picker(picker_name)
+    for _, picker in pairs(self.pickers) do
+        if (picker.name == picker_name) then return picker end
     end
     return nil
 end
@@ -132,9 +132,9 @@ local function validate_setup_props(props)
     if (vim.tbl_isempty(props or {})) then
         return error('Called setup() method without any props')
     end
-    -- actions
-    if (not props.actions) then
-        return error('Called setup() method with no actions')
+    -- pickers
+    if (not props.pickers) then
+        return error('Called setup() method with no pickers')
     end
     -- config
     if (props.config) then
@@ -158,10 +158,10 @@ function Strawberry:setup(props)
     -- Validate props
     validate_setup_props(props)
 
-    -- Register actions
-    for _, action in pairs(props.actions or {}) do
-        if (Strawberry:validate_action(action)) then
-            Strawberry:register_action(action)
+    -- Register pickers
+    for _, picker in pairs(props.pickers or {}) do
+        if (Strawberry:validate_picker(picker)) then
+            Strawberry:register_picker(picker)
         end
     end
 
@@ -170,26 +170,26 @@ function Strawberry:setup(props)
 
     -- Create autocommands
     vim.api.nvim_create_user_command('Strawberry', function(args)
-        local action_name = args.args
-        if (action_name == "") then
-            return error("Attempted to launch Strawberry with no action name")
+        local picker_name = args.args
+        if (picker_name == "") then
+            return error("Attempted to launch Strawberry with no picker name")
         end
-        return Strawberry:init(action_name)
+        return Strawberry:init(picker_name)
     end, {nargs = '?'})
 end
 
 -- Strawberry refers to the buffer that contains the list of items
-function Strawberry:init(action_name)
-    local action = self:get_action(action_name)
-    if (not action) then
-        return error("No registered action under name: " .. action_name)
+function Strawberry:init(picker_name)
+    local picker = self:get_picker(picker_name)
+    if (not picker) then
+        return error("No registered picker under name: " .. picker_name)
     end
 
     -- Close any existing strawberry buffers
     delete_buffers_by_filetype('strawberry', delete_buffer)
 
     -- Merge configs
-    for k, v in pairs(action.config or {}) do self.config[k] = v end
+    for k, v in pairs(picker.config or {}) do self.config[k] = v end
 
     -- Auto close strawberry on BufLeave
     set_auto_close(self.config)
@@ -199,8 +199,8 @@ function Strawberry:init(action_name)
     self.ctx.win_origin = vim.api.nvim_get_current_win()
 
     -- Each item constitutes a line in the strawberry
-    self.items = action.get_items()
-    -- if (action.delimiter) then self.delimiter = action.delimiter end
+    self.items = picker.get_items()
+    -- if (picker.delimiter) then self.delimiter = picker.delimiter end
     local parsed_items = self:get_parsed_items(self.items)
 
     -- Render strawberry
