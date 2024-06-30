@@ -1,9 +1,17 @@
-local open_file = function(file, ctx)
-    vim.api.nvim_buf_delete(ctx.buf, {})
-    -- TODO: possible bug, maybe if possible we should use the buffer from where we came from instead of creating a new one
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_win_set_buf(ctx.win_origin, buf)
+local open_file = function(file, ctx, _opts)
+    -- if opts.auto_close then vim.api.nvim_buf_delete(ctx.main_buf, {}) end
+
+    local new_buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_win(ctx.win_origin)
+    vim.api.nvim_win_set_buf(ctx.win_origin, new_buf)
+
     vim.cmd('e ' .. file)
+end
+
+local function get_metatable_field(obj, field)
+    local mt = getmetatable(obj)
+    if mt and mt.__index then return mt.__index[field] end
+    return nil
 end
 
 local function get_home_path() return os.getenv("HOME") end
@@ -55,6 +63,7 @@ local function get_max_title_length(items)
     end
     return max
 end
+
 local M = {
     set_options = set_options,
     set_highlights = set_highlights,
@@ -63,7 +72,8 @@ local M = {
     open_file = open_file,
     get_home_path = get_home_path,
     remove_home_path = remove_home_path,
-    get_filename = get_filename
+    get_filename = get_filename,
+    get_metatable_field = get_metatable_field
 }
 
 return M

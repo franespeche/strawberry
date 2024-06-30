@@ -2,26 +2,73 @@
 local Item = require('Item')
 local utils = require('utils')
 
+-- Helpers
+local function delete_buffer(buf) vim.api.nvim_buf_delete(buf, {force = true}) end
+
+local function set_auto_close(config)
+    -- Clear any existing autocommands to support different actions with potential different auto_close configs
+    local augroup = vim.api.nvim_create_augroup("Strawberry", {clear = true})
+    vim.api.nvim_clear_autocmds({group = augroup})
+
+    -- Create autocommand to close buffer on BufLeave
+    if (config.auto_close) then
+        vim.api.nvim_create_autocmd('BufLeave', {
+            pattern = "*",
+            group = augroup,
+            -- once = true,
+            callback = function(e)
+                if (vim.bo.filetype == "strawberry") then
+                    delete_buffer(e.buf)
+                end
+            end
+        })
+    end
+end
+
+local function delete_buffers_by_filetype(filetype, action)
+    -- Get a list of all buffer handles
+    local buffers = vim.api.nvim_list_bufs()
+
+    -- Iterate over each buffer handle
+    for _, buf in ipairs(buffers) do
+        -- Check if the buffer is loaded and the filetype matches
+        if vim.api.nvim_buf_is_loaded(buf) then
+            local buf_filetype = vim.api.nvim_buf_get_option(buf, 'filetype')
+            if buf_filetype == filetype then
+                -- Perform the desired action on the buffer
+                action(buf)
+            end
+        end
+    end
+end
+
 -- Constants
 local DEFAULT_CONFIG = {window_height = 5, auto_close = true}
 
 -- Strawberry
 local Strawberry = {ctx = {}, actions = {}, config = DEFAULT_CONFIG}
 
--- Generates items
-function Strawberry:generate_items(action)
-    local items = action.get_items()
-    self.items = items or {}
-    return items
-end
-
 -- Validates action
 function Strawberry:validate_action(action)
     -- validate fields
+    if (not action.name) then
+        error('"action.name" must be defined')
+        return false
+    end
     if (type(action.name) ~= 'string') then
         error('"action.name" must be of type "string"')
         return false
     end
+
+    if (not action.get_items) then
+        error('"action.get_items" must be defined')
+        return false
+    end
+    if (type(action.get_items) ~= 'function') then
+        error('"action.get_items" must be of type "function"')
+        return false
+    end
+
     -- check if the action already exists
     for _, registered_action in pairs(self.actions) do
         if (registered_action.name == action.name) then return false end
@@ -30,7 +77,10 @@ function Strawberry:validate_action(action)
 end
 
 -- Registrators
-function Strawberry:register_action(action) table.insert(self.actions, action) end
+function Strawberry:register_action(action)
+    -- Register action
+    table.insert(self.actions, action)
+end
 
 function Strawberry:get_parsed_items(items)
     local lines = {}
@@ -41,34 +91,34 @@ function Strawberry:get_parsed_items(items)
     return lines
 end
 
--- Renders main buffer
+-- Renders strawberry
 function Strawberry:render(lines)
     -- Open new split
     local height = vim.fn.min({#lines, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
 
-    local win = vim.api.nvim_get_current_win()
-    local buf = vim.api.nvim_create_buf(false, true)
-    self.ctx.win = win
-    self.ctx.buf = buf
+    local strawberry_win = vim.api.nvim_get_current_win()
+    local strawberry_buf = vim.api.nvim_create_buf(false, true)
+    self.ctx.strawberry_win = strawberry_win
+    self.ctx.strawberry_buf = strawberry_buf
 
-    -- Set options
-    utils.set_options(buf)
+    -- Set strawberry options
+    utils.set_options(strawberry_buf)
 
-    -- Fill main buffer and focus
-    vim.api.nvim_buf_set_lines(buf, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(win, buf)
+    -- Fill strawberry and focus
+    vim.api.nvim_buf_set_lines(strawberry_buf, 0, #lines, false, lines)
+    vim.api.nvim_win_set_buf(strawberry_win, strawberry_buf)
 
-    -- lock main buffer
-    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+    -- Lock strawberry
+    vim.api.nvim_buf_set_option(strawberry_buf, 'modifiable', false)
 
     utils.set_highlights()
 
     -- <CR> handler
     vim.keymap.set("n", "<cr>", function()
         local num = vim.api.nvim_win_get_cursor(0)[1]
-        self.items[num]:execute(self.ctx)
-    end, {silent = true, buffer = buf})
+        self.items[num]:execute(self.config)
+    end, {silent = true, buffer = strawberry_buf})
 end
 
 function Strawberry:get_action(action_name)
@@ -78,18 +128,35 @@ function Strawberry:get_action(action_name)
     return nil
 end
 
-local function validate_setup_config(cfg)
-    if (vim.tbl_isempty(cfg or {})) then
-        return error('Called setup() method without any config')
+local function validate_setup_props(props)
+    if (vim.tbl_isempty(props or {})) then
+        return error('Called setup() method without any props')
+    end
+    -- actions
+    if (not props.actions) then
+        return error('Called setup() method with no actions')
+    end
+    -- config
+    if (props.config) then
+        if (props.config.window_height and type(props.config.window_height) ~=
+            'number') then
+            return error('config.window_height must be a number')
+        end
+        if (props.config.auto_close and type(props.config.auto_close) ~=
+            'boolean') then
+            return error('config.auto_close must be a boolean')
+        end
+
     end
 end
 
 function Strawberry:setup(props)
     setmetatable(self, {__index = Strawberry})
+    -- TODO: should we _not_ use the same metatable for Item?
     setmetatable(Item, {__index = Strawberry})
 
-    -- Validate config
-    validate_setup_config(props)
+    -- Validate props
+    validate_setup_props(props)
 
     -- Register actions
     for _, action in pairs(props.actions or {}) do
@@ -98,7 +165,7 @@ function Strawberry:setup(props)
         end
     end
 
-    -- Register config
+    -- Register configs
     for k, v in pairs(props.config or {}) do self.config[k] = v end
 
     -- Create autocommands
@@ -111,31 +178,32 @@ function Strawberry:setup(props)
     end, {nargs = '?'})
 end
 
+-- Strawberry refers to the buffer that contains the list of items
 function Strawberry:init(action_name)
     local action = self:get_action(action_name)
     if (not action) then
         return error("No registered action under name: " .. action_name)
     end
 
-    -- Create autocommands
-    vim.api.nvim_create_autocmd('BufLeave', {
-        pattern = "*",
-        group = vim.api.nvim_create_augroup("Strawberry", {clear = true}),
-        callback = function(e)
-            if (vim.bo.filetype == "strawberry") then
-                vim.api.nvim_buf_delete(e.buf, {})
-            end
-        end
-    })
+    -- Close any existing strawberry buffers
+    delete_buffers_by_filetype('strawberry', delete_buffer)
+
+    -- Merge configs
+    for k, v in pairs(action.config or {}) do self.config[k] = v end
+
+    -- Auto close strawberry on BufLeave
+    set_auto_close(self.config)
 
     -- Save context
     self.ctx.buf_origin = vim.api.nvim_get_current_buf()
     self.ctx.win_origin = vim.api.nvim_get_current_win()
 
-    -- Each item constitutes a line in the main buffer
-    local items = self:generate_items(action)
-    local parsed_items = self:get_parsed_items(items)
+    -- Each item constitutes a line in the strawberry
+    self.items = action.get_items()
+    -- if (action.delimiter) then self.delimiter = action.delimiter end
+    local parsed_items = self:get_parsed_items(self.items)
 
+    -- Render strawberry
     self:render(parsed_items)
 end
 
