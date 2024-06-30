@@ -27,17 +27,13 @@ function Item:execute() self.on_select(self.value, self.ctx) end
 function Item:get_line_content(max_title_length)
     local spacer = "  "
     local column_delimiter = spacer .. "·" .. spacer
-    local line = "  " .. tostring(self.num)
+    local auto_width = string.rep(' ', max_title_length - #self.title)
 
+    local line_num = spacer .. tostring(self.num) .. spacer
+    local title = self.title .. auto_width
     local label = self.label
 
-    if (self.title and self.title ~= "") then
-        line = line .. spacer .. self.title
-    end
-
-    local auto_width = string.rep(' ', max_title_length - #self.title)
-    line = line .. auto_width .. column_delimiter .. label
-    return line
+    return line_num .. title .. column_delimiter .. label
 end
 
 return Item
