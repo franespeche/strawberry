@@ -1,15 +1,3 @@
--- Item
--- Each item constitutes a line in the Strawberry buffer
--- ie: A list of recent files would look like:
--- 1 init.lua      ~/dotfiles/nvim/lua/init.lua
--- (num) (title)   (label)
--- @param {number} num - The number of the item
--- @param {string} title - The title of the item
--- @param {string} label(optional) - The label of the item
--- @param {string} value(optional) - The value of the item. This will be passed to the item's on_select
--- @param {function} on_select - The on_select to be executed when the item is selected
-local Item = {num = nil, title = nil, label = nil, value = nil, on_select = nil}
-
 -- Helpers
 local function validate_opts(opts)
     -- validate title
@@ -35,11 +23,27 @@ local function validate_opts(opts)
     end
 end
 
+--[[
+     Item:
+     Each item constitutes a line in Strawberry's pickers
+     For instance, a list of recent files picker could look like:
+     ------------------------------------------------------------
+      1   init.lua         ~/dotfiles/nvim/lua/init.lua
+      2   some-util.lua    ~/dotfiles/nvim/lua/utils/some-util.lua
+     ------------------------------------------------------------
+     (num)(title)          (label)
+
+     @param {string} title - The title of the item
+     @param {string} label(optional) - The label of the item
+     @param {string} value(optional) - The value of the item. This will be passed to the item's on_select
+     @param {function} on_select - The on_select to be executed when the item is selected
+]] --
+local Item = {title = nil, label = nil, value = nil, on_select = nil}
+
 -- Constructor
 function Item:create(opts)
     validate_opts(opts)
     local obj = {
-        num = opts.num,
         value = opts.value,
         title = opts.title,
         label = opts.label or "",
@@ -50,7 +54,10 @@ function Item:create(opts)
 end
 
 -- To be called when the item is selected
-function Item:execute(opts) self.on_select(self.value, self.ctx, opts) end
+function Item:execute(ctx)
+    vim.api.nvim_command('StrawberrySelect')
+    self.on_select(self.value, ctx)
+end
 
 -- Returns the content of the item as a string
 function Item:get_line_content(max_title_length)
@@ -59,11 +66,11 @@ function Item:get_line_content(max_title_length)
     local column_delimiter = spacer .. punctuation_space .. spacer
     local auto_width = string.rep(' ', max_title_length - #self.title)
 
-    local line_num = spacer .. tostring(self.num) .. spacer
+    local line_key = spacer .. tostring(self.key) .. spacer
     local title = self.title .. auto_width
     local label = self.label
 
-    return line_num .. title .. column_delimiter .. label
+    return line_key .. title .. column_delimiter .. label
 end
 
 return Item
