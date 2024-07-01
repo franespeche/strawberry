@@ -40,9 +40,9 @@ local function set_auto_close(config)
         vim.api.nvim_create_autocmd('BufLeave', {
             pattern = "*",
             group = augroup,
-            callback = function(e)
+            callback = function()
                 if (vim.bo.filetype == "strawberry") then
-                    delete_buffer(e.buf)
+                    return vim.api.nvim_command('StrawberryClose')
                 end
             end
         })
@@ -77,7 +77,10 @@ local BASE_CONFIG = {
     window_height = 5, -- height of the strawberry window
     close_on_leave = false, -- close on BufLeave
     close_on_select = true, -- close on item selection
-    keymaps = {close = {"<esc>"}, select_item = {"<cr>"}} -- Not yet supported
+    keymaps = {
+        close = {"<esc>"}, -- Not yet supported
+        select_item = {"<cr>"}
+    }
 }
 
 -- Strawberry
@@ -115,11 +118,11 @@ end
 function Strawberry:register_picker(picker) table.insert(self.pickers, picker) end
 
 -- Parses items to be rendered by Strawberry
-function Strawberry:get_lines(items)
+function Strawberry:get_stringified_items(items)
     local lines = {}
     local max_title_length = utils.get_max_title_length(items)
     for _, item in pairs(items) do
-        table.insert(lines, item:get_line_content(max_title_length))
+        table.insert(lines, item:to_string(max_title_length))
     end
     return lines
 end
@@ -140,7 +143,7 @@ function Strawberry:render()
     utils.set_options(self.ctx.strawberry_buf)
 
     -- Set buffer content
-    local lines = self:get_lines(items)
+    local lines = self:get_stringified_items(items)
     vim.api.nvim_buf_set_lines(self.ctx.strawberry_buf, 0, #lines, false, lines)
     vim.api.nvim_win_set_buf(self.ctx.strawberry_win, self.ctx.strawberry_buf)
 
@@ -156,8 +159,17 @@ function Strawberry:render()
     -- for each keymap in tuple self.config.keymaps, set a keymap that will execute the item
     for _, keymap in ipairs(self.config.keymaps.select_item) do
         vim.keymap.set("n", keymap, function()
-            local num = vim.api.nvim_win_get_cursor(0)[1]
-            self.items[num]:execute(self.ctx)
+            -- TODO: move this logic to StrawberrySelect command
+            local item_index = vim.api.nvim_win_get_cursor(0)[1]
+            self.items[item_index]:execute(self.ctx)
+            return vim.api.nvim_command('StrawberrySelect ' ..
+                                            tostring(item_index))
+        end, {silent = true, buffer = self.ctx.strawberry_buf})
+    end
+
+    for _, keymap in ipairs(self.config.keymaps.close) do
+        vim.keymap.set("n", keymap, function()
+            return vim.api.nvim_command('StrawberryClose')
         end, {silent = true, buffer = self.ctx.strawberry_buf})
     end
 
@@ -181,7 +193,6 @@ function Strawberry:get_picker(picker_name)
 end
 
 function Strawberry:setup(props)
-    -- TODO: move this somewhere else
     setmetatable(self, {__index = Strawberry})
 
     -- Validate props
@@ -218,25 +229,31 @@ function Strawberry:lock()
 end
 
 local function create_commands(config)
-    -- Create autocommand to close buffer on StrawberrySelect
-    vim.api.nvim_create_user_command('StrawberrySelect', function()
+    vim.api.nvim_create_user_command('StrawberryClose', function()
+        return delete_strawberry_buffers()
+    end, {nargs = '?'})
+    vim.api.nvim_create_user_command('StrawberrySelect', function(args)
+        local item_index = args.args
+        P(item_index)
+        -- this needs to be 
         Strawberry:redraw()
-        if (config.close_on_select) then delete_strawberry_buffers() end
+        if (config.close_on_select) then
+            return vim.api.nvim_command('StrawberryClose')
+        end
     end, {nargs = '?'})
 end
 
--- TODO: revisit
+-- TODO: revisit this logic
 function Strawberry:redraw()
     Strawberry:unlock()
     local items = self.picker.get_items()
     -- Add key to each item
     for i, item in ipairs(items) do
-        local key = utils.get_key(i)
-        if not key then break end
-        item.key = key
+        local key = utils.get_hotkey(i)
+        item.key = key or "·"
     end
     self.items = items
-    local lines = self:get_lines(items)
+    local lines = self:get_stringified_items(items)
     vim.api.nvim_buf_set_lines(self.ctx.strawberry_buf, 0, #lines, false, lines)
     Strawberry:lock()
 end
@@ -271,9 +288,8 @@ function Strawberry:init(picker_name)
     local items = picker.get_items()
     -- Add key to each item
     for i, item in ipairs(items) do
-        local key = utils.get_key(i)
-        if not key then break end
-        item.key = key
+        local key = utils.get_hotkey(i)
+        item.key = key or "·"
     end
     self.items = items
 
@@ -286,10 +302,10 @@ return {
     create_item = function(opts) return Item:create(opts) end,
     -- public utils
     utils = {
+        get_filename = utils.get_filename,
+        get_home_path = utils.get_home_path,
         is_git_directory = utils.is_git_directory,
         open_file = utils.open_file,
-        get_home_path = utils.get_home_path,
-        remove_home_path = utils.remove_home_path,
-        get_filename = utils.get_filename
+        remove_home_path = utils.remove_home_path
     }
 }
