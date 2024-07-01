@@ -1,5 +1,5 @@
 -- Helpers
-local function validate_opts(opts)
+local function sanitize_props(opts)
     -- validate title
     if not opts.title then error("Item must have a title") end
     if (type(opts.title) ~= 'string') then
@@ -41,16 +41,16 @@ end
 local Item = {title = nil, label = nil, value = nil, on_select = nil}
 
 -- Constructor
-function Item:create(opts)
-    validate_opts(opts)
-    local obj = {
-        value = opts.value,
-        title = opts.title,
-        label = opts.label or "",
-        on_select = opts.on_select
+function Item:create(props)
+    sanitize_props(props)
+    local item = {
+        value = props.value,
+        title = props.title,
+        label = props.label or "",
+        on_select = props.on_select
     }
-    setmetatable(obj, {__index = Item})
-    return obj
+    setmetatable(item, {__index = Item})
+    return item
 end
 
 -- To be called when the item is selected
@@ -60,9 +60,9 @@ function Item:execute(ctx)
 end
 
 -- Returns the content of the item as a string
-function Item:get_line_content(max_title_length)
+function Item:to_string(max_title_length)
     local spacer = "  "
-    local punctuation_space = " "
+    local punctuation_space = " " -- note this is not the same ascii as space. this will also be used as a highlight delimiter
     local column_delimiter = spacer .. punctuation_space .. spacer
     local auto_width = string.rep(' ', max_title_length - #self.title)
 
