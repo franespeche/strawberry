@@ -1,11 +1,8 @@
-local open_file = function(file, ctx, _opts)
-    -- if opts.auto_close then vim.api.nvim_buf_delete(ctx.main_buf, {}) end
-
-    local new_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_set_current_win(ctx.win_origin)
-    vim.api.nvim_win_set_buf(ctx.win_origin, new_buf)
-
-    vim.cmd('e ' .. file)
+local open_file = function(filepath, ctx)
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_win(ctx.target_win)
+    vim.api.nvim_win_set_buf(ctx.target_win, buf)
+    vim.cmd('e ' .. filepath)
 end
 
 local function get_metatable_field(obj, field)
@@ -16,9 +13,9 @@ end
 
 local function get_home_path() return os.getenv("HOME") end
 
-local function remove_home_path(file)
+local function remove_home_path(filepath)
     local home = get_home_path()
-    return string.gsub(file, home .. "/", "")
+    return string.gsub(filepath, home .. "/", "")
 end
 
 local function get_filename(path)
@@ -33,12 +30,49 @@ end
 local function set_highlights()
     if (vim.fn.has("syntax")) then
         vim.cmd([[syntax clear]])
-        vim.cmd([[syntax match strawberryLineNum /\v^\s\s(\d+)/ contained]])
+        vim.cmd([[syntax match strawberryLineKey /\v^\s\s((\d|\w))/ contained]])
         vim.cmd(
-            [[syntax match strawberryKey /\v^\s\s\d+\s+(.+)\s+/ contains=strawberryLineNum]])
-        vim.cmd([[hi def link strawberryLineNum String]])
-        vim.cmd([[hi def link strawberryKey Type]])
+            [[syntax match strawberryTitle /\v^\s\s(\d|\w)\s+(.+)\s+/ contains=strawberryLineKey]])
+        vim.cmd([[hi def link strawberryLineKey String]])
+        vim.cmd([[hi def link strawberryTitle Type]])
     end
+end
+
+-- Gets an easy access hot_key for the given item index
+local function get_key(i)
+    local number_to_letter = {
+        ["1"] = '1',
+        ["2"] = '2',
+        ["3"] = '3',
+        ["4"] = 'q',
+        ["5"] = 'w',
+        ["6"] = 'e',
+        ["7"] = 'a',
+        ["8"] = 's',
+        ["9"] = 'd',
+        [10] = 'z',
+        [11] = 'x',
+        [12] = 'c',
+        [13] = '4',
+        [14] = 'r',
+        [15] = 'f',
+        [16] = 'v',
+        [17] = 't',
+        [18] = 'g',
+        [19] = 'b',
+        [20] = '6',
+        [21] = "y",
+        [22] = "h",
+        [23] = "n",
+        [24] = "7",
+        [25] = "u",
+        [26] = "j",
+        [27] = "m",
+        [28] = '8',
+        [29] = "i",
+        [30] = "k"
+    }
+    return number_to_letter[tostring(i)] or number_to_letter[i] or tostring(i)
 end
 
 local function set_options(buf)
@@ -64,16 +98,22 @@ local function get_max_title_length(items)
     return max
 end
 
-local M = {
-    set_options = set_options,
-    set_highlights = set_highlights,
-    get_max_title_length = get_max_title_length,
-    is_git_directory = is_git_directory,
-    open_file = open_file,
-    get_home_path = get_home_path,
-    remove_home_path = remove_home_path,
-    get_filename = get_filename,
-    get_metatable_field = get_metatable_field
+local table_utils = {
+    merge = function(t1, t2) for k, v in pairs(t2) do t1[k] = v end end
 }
 
-return M
+local U = {
+    table_utils = table_utils,
+    get_filename = get_filename,
+    get_home_path = get_home_path,
+    get_key = get_key,
+    get_max_title_length = get_max_title_length,
+    get_metatable_field = get_metatable_field,
+    is_git_directory = is_git_directory,
+    open_file = open_file,
+    remove_home_path = remove_home_path,
+    set_highlights = set_highlights,
+    set_options = set_options
+}
+
+return U
