@@ -30,49 +30,22 @@ end
 local function set_highlights()
     if (vim.fn.has("syntax")) then
         vim.cmd([[syntax clear]])
-        vim.cmd([[syntax match strawberryLineKey /\v^\s\s((\d|\w))/ contained]])
         vim.cmd(
-            [[syntax match strawberryTitle /\v^\s\s(\d|\w)\s+(.+)\s+/ contains=strawberryLineKey]])
+            [[syntax match strawberryLineKey /\v^\s\s((\d|\w|·))/ contained]])
+        vim.cmd(
+            [[syntax match strawberryTitle /\v^\s\s(\d|\w|·)\s+(.+)\s+/ contains=strawberryLineKey]])
         vim.cmd([[hi def link strawberryLineKey String]])
         vim.cmd([[hi def link strawberryTitle Type]])
     end
 end
 
 -- Gets an easy access hot_key for the given item index
-local function get_key(i)
-    local number_to_letter = {
-        ["1"] = '1',
-        ["2"] = '2',
-        ["3"] = '3',
-        ["4"] = 'q',
-        ["5"] = 'w',
-        ["6"] = 'e',
-        ["7"] = 'a',
-        ["8"] = 's',
-        ["9"] = 'd',
-        [10] = 'z',
-        [11] = 'x',
-        [12] = 'c',
-        [13] = '4',
-        [14] = 'r',
-        [15] = 'f',
-        [16] = 'v',
-        [17] = 't',
-        [18] = 'g',
-        [19] = 'b',
-        [20] = '6',
-        [21] = "y",
-        [22] = "h",
-        [23] = "n",
-        [24] = "7",
-        [25] = "u",
-        [26] = "j",
-        [27] = "m",
-        [28] = '8',
-        [29] = "i",
-        [30] = "k"
-    }
-    return number_to_letter[tostring(i)] or number_to_letter[i] or tostring(i)
+local function get_hotkey(i)
+    local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
+    if i < 1 or i > #keys then
+        return nil -- or handle the out-of-bounds case as needed
+    end
+    return string.sub(keys, i, i)
 end
 
 local function set_options(buf)
@@ -106,7 +79,7 @@ local U = {
     table_utils = table_utils,
     get_filename = get_filename,
     get_home_path = get_home_path,
-    get_key = get_key,
+    get_hotkey = get_hotkey,
     get_max_title_length = get_max_title_length,
     get_metatable_field = get_metatable_field,
     is_git_directory = is_git_directory,
