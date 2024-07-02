@@ -1,9 +1,40 @@
--- Imports
+-- Imports --
 local Item = require('Item')
 local utils = require('utils')
 local table_utils = utils.table_utils
 
--- Helpers
+-- Helpers --
+
+local function get_single_character_keymaps(config)
+    local single_char_keys = {}
+
+    for _, keymap in pairs(config.keymaps) do
+        for _, key in ipairs(keymap) do
+            if #key == 1 then table.insert(single_char_keys, key) end
+        end
+    end
+
+    return single_char_keys
+end
+
+-- Get available keys for the items, excluding the ones used by any existing keymap
+local function get_available_keys(config)
+    local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
+    local single_char_keys = get_single_character_keymaps(config)
+
+    local available_keys = {}
+    for key in keys:gmatch(".") do available_keys[key] = true end
+
+    for _, key in ipairs(single_char_keys) do available_keys[key] = nil end
+
+    local result = ""
+    for key in keys:gmatch(".") do
+        if available_keys[key] then result = result .. key end
+    end
+
+    return result
+end
+
 -- Deletes buffer
 local function delete_buffer(buf) vim.api.nvim_buf_delete(buf, {force = true}) end
 
@@ -29,11 +60,11 @@ local function validate_setup_props(props)
     if (vim.tbl_isempty(props or {})) then
         return error('Called setup() method without any props')
     end
-    -- pickers
+    -- Pickers
     if (not props.pickers) then
         return error('Called setup() method with no pickers')
     end
-    -- config
+    -- Config
     if (props.config) then
         if (props.config.window_height and type(props.config.window_height) ~=
             'number') then
@@ -47,7 +78,7 @@ local function validate_setup_props(props)
     end
 end
 
--- Enums
+-- Enums --
 local Commands = {
     REDRAW = "StrawberryRedraw",
     CLOSE = "StrawberryClose",
@@ -55,11 +86,11 @@ local Commands = {
     DELETE = "StrawberryDelete"
 }
 
--- Constants
+-- Constants --
 local STRAWBERRY_FILETYPE = "strawberry"
 local STRAWBERRY_AUGROUP = "Strawberry"
 
--- Strawberry
+-- Strawberry --
 local Strawberry = {
     items = {},
     pickers = {},
@@ -67,14 +98,10 @@ local Strawberry = {
         window_height = 5, -- height of the strawberry window
         close_on_leave = false, -- close on BufLeave
         close_on_select = true, -- close on item selection
-        keymaps = {
-            close = {"<esc>"},
-            select_item = {"<cr>", "f"},
-            delete_item = {"d"} -- not supported
-        }
+        keymaps = {close = {"q"}, select_item = {"<cr>"}}
     },
     picker = nil,
-    canvas = {buf = nil, win = nil}, -- canvas is the window and buffer where the items are rendered
+    canvas = {buf = nil, win = nil}, -- canvas is the window and buffer where Strawberry (with its items) will be rendered
     ctx = {
         target_win = nil, -- window where Strawberry was launched from
         target_buf = nil -- buffer where Strawberry was launched from
@@ -84,17 +111,9 @@ local Strawberry = {
 function Strawberry:setup(props)
     setmetatable(self, {__index = Strawberry})
 
-    -- Validate props
     validate_setup_props(props)
 
-    -- Register pickers
-    for _, picker in pairs(props.pickers or {}) do
-        if (Strawberry:validate_picker(picker)) then
-            Strawberry:register_picker(picker)
-        end
-    end
-
-    -- Register base config
+    Strawberry:register_pickers(props.pickers)
     Strawberry:register_config(props.config)
 
     -- Create init command
@@ -107,18 +126,14 @@ function Strawberry:setup(props)
     end, {nargs = '?'})
 end
 
+-- Initialize Strawberry
 function Strawberry:init(picker_name)
-    -- TODO revisit this
-    Strawberry:set_active_picker(picker_name)
-
     Strawberry:close()
+    Strawberry:register_picker(picker_name)
     Strawberry:register_config(self.picker.config)
     Strawberry:register_listeners()
-
-    -- Save the target's canvas into the ctx object
-    -- TODO: revisit this
-    Strawberry:set_context()
-    Strawberry:set_items_from_picker(self.picker)
+    Strawberry:register_ctx()
+    Strawberry:register_items(self.picker)
     self.canvas = Strawberry:create_canvas(self.config)
     Strawberry:register_keymaps(self.canvas.buf)
     Strawberry:render(self.canvas, self.items)
@@ -131,7 +146,7 @@ function Strawberry:register_listeners()
                                                 {clear = true})
     clear_autocmds(augroup)
 
-    -- Event Listeners
+    -- Event Listeners --
     -- Set highlights
     vim.api.nvim_create_autocmd('FileType', {
         pattern = STRAWBERRY_FILETYPE,
@@ -161,7 +176,7 @@ function Strawberry:register_listeners()
         })
     end
 
-    -- Commands Listeners
+    -- Commands Listeners --
     -- Handle Redraw
     vim.api.nvim_create_user_command(Commands.REDRAW,
                                      function() Strawberry:redraw() end,
@@ -182,20 +197,12 @@ function Strawberry:register_listeners()
             vim.api.nvim_command(Commands.REDRAW)
         end
     end, {nargs = '?'})
-
-    -- Handle Delete
-    vim.api.nvim_create_user_command(Commands.DELETE, function(args)
-        return error("Implement DELETE command")
-    end, {nargs = '?'})
 end
-
-function Strawberry:get_items() return self.items end
 
 function Strawberry:close() delete_buffers_by_filetype(STRAWBERRY_FILETYPE) end
 
 -- Validates a picker
 function Strawberry:validate_picker(picker)
-    -- validate fields
     if (not picker.name) then
         error('"picker.name" must be defined')
         return false
@@ -221,9 +228,6 @@ function Strawberry:validate_picker(picker)
     return true
 end
 
--- Registers pickers to Strawberry
-function Strawberry:register_picker(picker) table.insert(self.pickers, picker) end
-
 -- Parses items to be rendered by Strawberry
 function Strawberry:get_stringified_items(items)
     local lines = {}
@@ -234,8 +238,9 @@ function Strawberry:get_stringified_items(items)
     return lines
 end
 
+-- Register keymaps for the Strawberry buffer
 function Strawberry:register_keymaps(buf)
-    -- Common keymaps
+    -- Common keymaps --
     -- Select item
     for _, keymap in ipairs(self.config.keymaps.select_item) do
         vim.keymap.set("n", keymap, function()
@@ -251,18 +256,10 @@ function Strawberry:register_keymaps(buf)
         end, {silent = true, buffer = buf})
     end
 
-    -- Delete item
-    -- for _, keymap in ipairs(self.config.keymaps.delete_item) do
-    -- vim.keymap.set("n", keymap, function()
-    -- local item_index = vim.api.nvim_win_get_cursor(0)[1]
-    -- return vim.api.nvim_command(Commands.DELETE .. tostring(item_index))
-    -- end, {silent = true, buffer = buf})
-    -- end
-
     -- Keymaps for each item
     for i, item in ipairs(self.items) do
         local key = item.key
-        -- Break if key is nil or key is more than one character
+        -- Break if key is nil longer than one character
         if (not key or #key > 1) then break end
         vim.keymap.set("n", tostring(key),
                        function() self.items[i]:execute(self.ctx) end,
@@ -295,57 +292,28 @@ function Strawberry:modifiable(modifiable)
 end
 
 -- Recalculate items and redraw the buffer
-function Strawberry:redraw()
-    Strawberry:set_items_from_picker(self.picker)
+function Strawberry:redraw(items)
+    if not items then Strawberry:register_items(self.picker) end
     Strawberry:render(self.canvas, self.items)
 end
 
+-- Register a config into Strawberry
 function Strawberry:register_config(config)
     table_utils.merge(self.config, config)
 end
 
--- Save the target's screen buffer and window into the ctx object
-function Strawberry:set_context()
+-- Save useful context
+function Strawberry:register_ctx()
+    -- This is where Strawberry was launched from.
     self.ctx.target_win = vim.api.nvim_get_current_win()
     self.ctx.target_buf = vim.api.nvim_get_current_buf()
 end
 
-local function get_single_character_keymaps(config)
-    local single_char_keys = {}
-
-    for _, keymap in pairs(config.keymaps) do
-        for _, key in ipairs(keymap) do
-            if #key == 1 then table.insert(single_char_keys, key) end
-        end
-    end
-
-    return single_char_keys
-end
-
-local function get_available_keys(config)
-    local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
-    local single_char_keys = get_single_character_keymaps(config)
-
-    -- Convert the keys string to a table of characters while maintaining order
-    local available_keys = {}
-    for key in keys:gmatch(".") do available_keys[key] = true end
-
-    -- Remove the existing single-character keys from available_keys
-    for _, key in ipairs(single_char_keys) do available_keys[key] = nil end
-
-    -- Convert the available_keys table back to a string while maintaining order
-    local result = ""
-    for key in keys:gmatch(".") do
-        if available_keys[key] then result = result .. key end
-    end
-
-    return result
-end
-
-function Strawberry:set_items_from_picker(picker)
+-- Register items for the picker and set hotkeys for each item
+function Strawberry:register_items(picker)
     self.items = picker.get_items()
 
-    -- Set hotkeys for each item
+    -- Add keys to items
     local available_keys = get_available_keys(self.config)
     for i, item in ipairs(self.items) do
         local key = string.sub(available_keys, i, i)
@@ -353,11 +321,13 @@ function Strawberry:set_items_from_picker(picker)
     end
 end
 
-function Strawberry:set_active_picker(picker_name)
-    self.picker = self:get_picker(picker_name)
-    if (not self.picker) then
+-- Register a picker by name
+function Strawberry:register_picker(picker_name)
+    local picker = self:get_picker(picker_name)
+    if (not picker) then
         return error("No registered picker under name: " .. picker_name)
     end
+    self.picker = picker
     return self.picker
 end
 
@@ -373,6 +343,14 @@ function Strawberry:create_canvas(config)
     }
     utils.set_buffer_options(canvas.buf)
     return canvas
+end
+
+function Strawberry:register_pickers(pickers)
+    for _, picker in pairs(pickers or {}) do
+        if (Strawberry:validate_picker(picker)) then
+            table.insert(self.pickers, picker)
+        end
+    end
 end
 
 return {
