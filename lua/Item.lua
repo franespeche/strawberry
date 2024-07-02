@@ -54,10 +54,7 @@ function Item:create(props)
 end
 
 -- To be called when the item is selected
-function Item:execute(ctx)
-    vim.api.nvim_command('StrawberrySelect')
-    self.on_select(self.value, ctx)
-end
+function Item:execute(ctx) self.on_select(self.value, ctx) end
 
 -- Returns the content of the item as a string
 function Item:to_string(max_title_length)

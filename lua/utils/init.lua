@@ -27,18 +27,6 @@ local function is_git_directory()
     return vim.api.nvim_exec("!git rev-parse --is-inside-work-tree", true)
 end
 
-local function set_highlights()
-    if (vim.fn.has("syntax")) then
-        vim.cmd([[syntax clear]])
-        vim.cmd(
-            [[syntax match strawberryLineKey /\v^\s\s((\d|\w|·))/ contained]])
-        vim.cmd(
-            [[syntax match strawberryTitle /\v^\s\s(\d|\w|·)\s+(.+)\s+/ contains=strawberryLineKey]])
-        vim.cmd([[hi def link strawberryLineKey String]])
-        vim.cmd([[hi def link strawberryTitle Type]])
-    end
-end
-
 -- Gets an easy access hot_key for the given item index
 local function get_hotkey(i)
     local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
@@ -48,7 +36,7 @@ local function get_hotkey(i)
     return string.sub(keys, i, i)
 end
 
-local function set_options(buf)
+local function set_buffer_options(buf)
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_set_option('number', false)
     vim.api.nvim_set_option('relativenumber', false)
@@ -85,8 +73,7 @@ local U = {
     is_git_directory = is_git_directory,
     open_file = open_file,
     remove_home_path = remove_home_path,
-    set_highlights = set_highlights,
-    set_options = set_options
+    set_buffer_options = set_buffer_options
 }
 
 return U

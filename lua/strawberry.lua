@@ -47,59 +47,88 @@ local function validate_setup_props(props)
     end
 end
 
+-- Enums
+local Commands = {
+    REDRAW = "StrawberryRedraw",
+    CLOSE = "StrawberryClose",
+    SELECT = "StrawberrySelect"
+}
+
 -- Constants
+local STRAWBERRY_FILETYPE = "strawberry"
+local STRAWBERRY_AUGROUP = "Strawberry"
+
 local BASE_CONFIG = {
     window_height = 5, -- height of the strawberry window
     close_on_leave = false, -- close on BufLeave
     close_on_select = true, -- close on item selection
-    keymaps = {
-        close = {"<esc>"}, -- Not yet supported
-        select_item = {"<cr>"}
-    }
+    keymaps = {close = {"<esc>"}, select_item = {"<cr>"}}
 }
 
 -- Strawberry
 local Strawberry = {items = {}, ctx = {}, pickers = {}, config = BASE_CONFIG}
 
--- Deletes all strawberry buffers
-function Strawberry:delete_buffers() delete_buffers_by_filetype('strawberry') end
-
 -- Creates autocommands
 function Strawberry:create_commands()
-    -- Clear any existing autocommands to support different pickers with different auto_close configs
-    local augroup = vim.api.nvim_create_augroup("Strawberry", {clear = true})
+    -- Clear any existing autocommands to support pickers with different configs
+    local augroup = vim.api.nvim_create_augroup(STRAWBERRY_AUGROUP,
+                                                {clear = true})
     clear_autocmds(augroup)
 
-    -- BufLeave
+    -- Set highlights
+    vim.api.nvim_create_autocmd('FileType', {
+        pattern = STRAWBERRY_FILETYPE,
+        callback = function()
+            if (vim.fn.has("syntax")) then
+                vim.cmd([[syntax clear]])
+                vim.cmd(
+                    [[syntax match strawberryLineKey /\v^\s\s((\d|\w|·))/ contained]])
+                vim.cmd(
+                    [[syntax match strawberryTitle /\v^\s\s(\d|\w|·)\s+(.+)\s+/ contains=strawberryLineKey]])
+                vim.cmd([[hi def link strawberryLineKey String]])
+                vim.cmd([[hi def link strawberryTitle Type]])
+            end
+        end
+    })
+
+    -- Handle BufLeave
     if (self.config.close_on_leave) then
         vim.api.nvim_create_autocmd('BufLeave', {
             pattern = "*",
             group = augroup,
             callback = function()
-                if (vim.bo.filetype == "strawberry") then
-                    return vim.api.nvim_command('StrawberryClose')
+                if (vim.bo.filetype == STRAWBERRY_FILETYPE) then
+                    vim.api.nvim_command(Commands.CLOSE)
                 end
             end
         })
     end
 
-    vim.api.nvim_create_user_command('StrawberryRedraw',
+    -- Handle Redraw
+    vim.api.nvim_create_user_command(Commands.REDRAW,
                                      function() Strawberry:redraw() end,
                                      {nargs = '?'})
 
-    -- StrawberryClose
-    vim.api.nvim_create_user_command('StrawberryClose', function()
-        return self:delete_buffers()
-    end, {nargs = '?'})
+    -- Handle Close
+    vim.api.nvim_create_user_command(Commands.CLOSE,
+                                     function() Strawberry:close() end,
+                                     {nargs = '?'})
 
-    -- StrawberrySelect
-    vim.api.nvim_create_user_command('StrawberrySelect', function()
+    -- Handle Select
+    vim.api.nvim_create_user_command(Commands.SELECT, function(args)
+        local item_index = tonumber(args.args)
+        self.items[item_index]:execute(self.ctx)
         if (self.config.close_on_select) then
-            return vim.api.nvim_command('StrawberryClose')
+            vim.api.nvim_command(Commands.CLOSE)
+        else
+            vim.api.nvim_command(Commands.REDRAW)
         end
-        vim.api.nvim_command('StrawberryRedraw')
     end, {nargs = '?'})
 end
+
+function Strawberry:get_items() return self.items end
+
+function Strawberry:close() delete_buffers_by_filetype(STRAWBERRY_FILETYPE) end
 
 -- Validates a picker
 function Strawberry:validate_picker(picker)
@@ -142,61 +171,44 @@ function Strawberry:get_stringified_items(items)
     return lines
 end
 
--- Renders Strawberry buffer
-function Strawberry:render()
-    local items = self.items
-    -- Open new split
-    local height = vim.fn.min({#items, self.config.window_height}) + 1
-    vim.cmd('botright ' .. height .. ' split')
-
-    -- Save buffer's context metadata
-    self.ctx.strawberry_win = vim.api.nvim_get_current_win()
-    self.ctx.strawberry_buf = vim.api.nvim_create_buf(false, true)
-
-    -- Set buffer options
-    -- TODO: move this to a "Strawberry" Filetype autocommand
-    utils.set_options(self.ctx.strawberry_buf)
-
-    -- Set buffer content
-    local lines = self:get_stringified_items(items)
-    vim.api.nvim_buf_set_lines(self.ctx.strawberry_buf, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(self.ctx.strawberry_win, self.ctx.strawberry_buf)
-
-    -- Lock buffer
-    -- TODO: move this to a "Strawberry" Filetype autocommand
-    vim.api.nvim_buf_set_option(self.ctx.strawberry_buf, 'modifiable', false)
-
-    -- Set highlights
-    -- TODO: move this to a "Strawberry" Filetype autocommand
-    utils.set_highlights()
-
-    -- Set keymap for executing items
-    -- for each keymap in tuple self.config.keymaps, set a keymap that will execute the item
+function Strawberry:set_keymaps(buf)
+    -- Common keymaps
     for _, keymap in ipairs(self.config.keymaps.select_item) do
         vim.keymap.set("n", keymap, function()
-            -- TODO: move this logic to StrawberrySelect command
             local item_index = vim.api.nvim_win_get_cursor(0)[1]
-            self.items[item_index]:execute(self.ctx)
-            return vim.api.nvim_command('StrawberrySelect ' ..
-                                            tostring(item_index))
-        end, {silent = true, buffer = self.ctx.strawberry_buf})
+            return vim.api.nvim_command(Commands.SELECT .. tostring(item_index))
+        end, {silent = true, buffer = buf})
     end
 
     for _, keymap in ipairs(self.config.keymaps.close) do
         vim.keymap.set("n", keymap, function()
-            return vim.api.nvim_command('StrawberryClose')
-        end, {silent = true, buffer = self.ctx.strawberry_buf})
+            return vim.api.nvim_command(Commands.CLOSE)
+        end, {silent = true, buffer = buf})
     end
 
-    -- Set uniq hotkeys for each item
-    for i, item in ipairs(items) do
+    -- Keymaps for each item
+    for i, item in ipairs(self.items) do
         local key = item.key
         -- Break if key is nil or key is more than one character
         if (not key or #key > 1) then break end
         vim.keymap.set("n", tostring(key),
                        function() self.items[i]:execute(self.ctx) end,
-                       {silent = true, buffer = self.ctx.strawberry_buf})
+                       {silent = true, buffer = buf})
     end
+end
+
+-- Renders Strawberry buffer
+function Strawberry:render(canvas, items)
+    Strawberry:unlock(canvas)
+
+    -- Set buffer content
+    local lines = self:get_stringified_items(items)
+    vim.api.nvim_buf_set_lines(canvas.buf, 0, #lines, false, lines)
+    vim.api.nvim_win_set_buf(canvas.win, canvas.buf)
+
+    -- Lock buffer
+    Strawberry:lock(canvas)
+
 end
 
 -- Get picker by name
@@ -207,25 +219,25 @@ function Strawberry:get_picker(picker_name)
     return nil
 end
 
-function Strawberry:unlock()
-    -- Unlock buffer
-    vim.api.nvim_buf_set_option(self.ctx.strawberry_buf, 'modifiable', true)
+-- Make the buffer modifiable
+function Strawberry:unlock(canvas)
+    vim.api.nvim_buf_set_option(canvas.buf, 'modifiable', true)
 end
 
-function Strawberry:lock()
-    -- Unlock buffer
-    vim.api.nvim_buf_set_option(self.ctx.strawberry_buf, 'modifiable', false)
+-- Make the buffer unmodifiable
+function Strawberry:lock(canvas)
+    vim.api.nvim_buf_set_option(canvas.buf, 'modifiable', false)
 end
 
 -- TODO: revisit this logic
 function Strawberry:redraw()
-    self:unlock()
+    self:unlock(self.canvas)
     local items = self.active_picker.get_items()
     self:set_hotkeys(items)
     self.items = items
     local lines = self:get_stringified_items(items)
-    vim.api.nvim_buf_set_lines(self.ctx.strawberry_buf, 0, #lines, false, lines)
-    self:lock()
+    vim.api.nvim_buf_set_lines(self.canvas.buf, 0, #lines, false, lines)
+    self:lock(self.canvas)
 end
 
 function Strawberry:register_config(config)
@@ -284,31 +296,51 @@ end
 
 -- Strawberry refers to the buffer that contains the list of items
 -- The target refers to the buffer that Strawberry was launched from. 
---  In other words, the buffer that Strawberry is interacting with
 function Strawberry:init(picker_name)
     -- Register active picker
-    self:set_active_picker(picker_name)
+    Strawberry:set_active_picker(picker_name)
 
     -- Close any existing strawberry buffers
-    self:delete_buffers()
+    Strawberry:close()
 
     -- Register picker's config
-    self:register_config(self.active_picker.config)
+    Strawberry:register_config(self.active_picker.config)
 
     -- Create Strawberry commands (BufLeave, StrawberrySelect, ...etc)
-    self:create_commands()
+    Strawberry:create_commands()
 
-    -- Save the target's screen buffer and window into the ctx object
-    self:set_context()
+    -- Save the target's canvas into the ctx object
+    Strawberry:set_context()
 
     -- Set active picker's items
-    self:set_items(self.active_picker)
+    Strawberry:set_items(self.active_picker)
 
     -- Set hotkeys for each item
-    self:set_hotkeys(self.items)
+    Strawberry:set_hotkeys(self.items)
+
+    -- Create a new canvas for Strawberry
+    self.canvas = Strawberry:create_canvas(self.config)
+
+    -- Set keymaps
+    Strawberry:set_keymaps(self.canvas.buf)
 
     -- Render Strawberry
-    self:render()
+    Strawberry:render(self.canvas, self.items)
+end
+
+-- Create a new split where Strawberry will be rendered
+function Strawberry:create_canvas(config)
+    -- Open new split
+    local height = vim.fn.min({#self.items, config.window_height}) + 1
+    vim.cmd('botright ' .. height .. ' split')
+
+    local canvas = {
+        win = vim.api.nvim_get_current_win(),
+        buf = vim.api.nvim_create_buf(false, true)
+    }
+
+    utils.set_buffer_options(canvas.buf)
+    return canvas
 end
 
 return {
