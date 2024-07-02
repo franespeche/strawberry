@@ -105,9 +105,10 @@ function Strawberry:create_commands()
     end
 
     -- Handle Redraw
-    vim.api.nvim_create_user_command(Commands.REDRAW,
-                                     function() Strawberry:redraw() end,
-                                     {nargs = '?'})
+    vim.api.nvim_create_user_command(Commands.REDRAW, function()
+        --
+        Strawberry:redraw()
+    end, {nargs = '?'})
 
     -- Handle Close
     vim.api.nvim_create_user_command(Commands.CLOSE,
@@ -276,15 +277,48 @@ function Strawberry:set_context()
     self.ctx.target_buf = vim.api.nvim_get_current_buf()
 end
 
--- Set hotkeys for each item
-function Strawberry:set_hotkeys(items)
-    for i, item in ipairs(items) do
-        local key = utils.get_hotkey(i)
+local function get_single_character_keymaps(config)
+    local single_char_keys = {}
+
+    for _, keymap in pairs(config.keymaps) do
+        for _, key in ipairs(keymap) do
+            if #key == 1 then table.insert(single_char_keys, key) end
+        end
+    end
+
+    return single_char_keys
+end
+
+local function get_available_keys(config)
+    local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
+    local single_char_keys = get_single_character_keymaps(config)
+
+    -- Convert the keys string to a table of characters while maintaining order
+    local available_keys = {}
+    for key in keys:gmatch(".") do available_keys[key] = true end
+
+    -- Remove the existing single-character keys from available_keys
+    for _, key in ipairs(single_char_keys) do available_keys[key] = nil end
+
+    -- Convert the available_keys table back to a string while maintaining order
+    local result = ""
+    for key in keys:gmatch(".") do
+        if available_keys[key] then result = result .. key end
+    end
+
+    return result
+end
+
+function Strawberry:set_items(picker)
+    self.items = picker.get_items()
+
+    -- Set hotkeys for each item
+    local available_keys = get_available_keys(self.config)
+    for i, item in ipairs(self.items) do
+        local key = string.sub(available_keys, i, i)
         item.key = key or "·"
     end
 end
-
-function Strawberry:set_items(picker) self.items = picker.get_items() end
 
 function Strawberry:set_active_picker(picker_name)
     self.active_picker = self:get_picker(picker_name)
@@ -314,9 +348,6 @@ function Strawberry:init(picker_name)
 
     -- Set active picker's items
     Strawberry:set_items(self.active_picker)
-
-    -- Set hotkeys for each item
-    Strawberry:set_hotkeys(self.items)
 
     -- Create a new canvas for Strawberry
     self.canvas = Strawberry:create_canvas(self.config)

@@ -27,15 +27,6 @@ local function is_git_directory()
     return vim.api.nvim_exec("!git rev-parse --is-inside-work-tree", true)
 end
 
--- Gets an easy access hot_key for the given item index
-local function get_hotkey(i)
-    local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
-    if i < 1 or i > #keys then
-        return nil -- or handle the out-of-bounds case as needed
-    end
-    return string.sub(keys, i, i)
-end
-
 local function set_buffer_options(buf)
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_set_option('number', false)
@@ -67,7 +58,6 @@ local U = {
     table_utils = table_utils,
     get_filename = get_filename,
     get_home_path = get_home_path,
-    get_hotkey = get_hotkey,
     get_max_title_length = get_max_title_length,
     get_metatable_field = get_metatable_field,
     is_git_directory = is_git_directory,
