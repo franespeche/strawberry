@@ -80,7 +80,7 @@ end
 
 -- Enums --
 local Commands = {
-    REDRAW = "StrawberryRedraw",
+    RESET = "StrawberryReset",
     CLOSE = "StrawberryClose",
     SELECT = "StrawberrySelect",
     DELETE = "StrawberryDelete"
@@ -109,13 +109,11 @@ local Strawberry = {
 }
 
 function Strawberry:setup(props)
-    setmetatable(self, {__index = Strawberry})
-
     validate_setup_props(props)
+    setmetatable(self, {__index = Strawberry})
 
     Strawberry:register_pickers(props.pickers)
     Strawberry:register_config(props.config)
-
     -- Create init command
     vim.api.nvim_create_user_command('Strawberry', function(args)
         local picker_name = args.args
@@ -127,16 +125,13 @@ function Strawberry:setup(props)
 end
 
 -- Initialize Strawberry
-function Strawberry:init(picker_name)
+function Strawberry:init(picker)
     Strawberry:close()
-    Strawberry:register_picker(picker_name)
-    Strawberry:register_config(self.picker.config)
+    Strawberry:register_ctx(picker)
     Strawberry:register_listeners()
-    Strawberry:register_ctx()
-    Strawberry:register_items(self.picker)
-    self.canvas = Strawberry:create_canvas(self.config)
-    Strawberry:register_keymaps(self.canvas.buf)
-    Strawberry:render(self.canvas, self.items)
+    Strawberry:apply_picker(picker)
+    Strawberry:create_window()
+    Strawberry:render()
 end
 
 -- Creates commands and event listeners
@@ -177,9 +172,9 @@ function Strawberry:register_listeners()
     end
 
     -- Commands Listeners --
-    -- Handle Redraw
-    vim.api.nvim_create_user_command(Commands.REDRAW,
-                                     function() Strawberry:redraw() end,
+    -- Handle reset
+    vim.api.nvim_create_user_command(Commands.RESET,
+                                     function() Strawberry:reset() end,
                                      {nargs = '?'})
 
     -- Handle Close
@@ -190,11 +185,12 @@ function Strawberry:register_listeners()
     -- Handle Select
     vim.api.nvim_create_user_command(Commands.SELECT, function(args)
         local item_index = tonumber(args.args)
+        -- TODO: revisit
         self.items[item_index]:execute(self.ctx)
         if (self.config.close_on_select) then
             vim.api.nvim_command(Commands.CLOSE)
         else
-            vim.api.nvim_command(Commands.REDRAW)
+            vim.api.nvim_command(Commands.RESET)
         end
     end, {nargs = '?'})
 end
@@ -229,7 +225,7 @@ function Strawberry:validate_picker(picker)
 end
 
 -- Parses items to be rendered by Strawberry
-function Strawberry:get_stringified_items(items)
+local function get_stringified_rows(items)
     local lines = {}
     local max_title_length = utils.get_max_title_length(items)
     for _, item in pairs(items) do
@@ -239,21 +235,21 @@ function Strawberry:get_stringified_items(items)
 end
 
 -- Register keymaps for the Strawberry buffer
-function Strawberry:register_keymaps(buf)
+function Strawberry:apply_keymaps()
     -- Common keymaps --
     -- Select item
     for _, keymap in ipairs(self.config.keymaps.select_item) do
         vim.keymap.set("n", keymap, function()
             local item_index = vim.api.nvim_win_get_cursor(0)[1]
             return vim.api.nvim_command(Commands.SELECT .. tostring(item_index))
-        end, {silent = true, buffer = buf})
+        end, {silent = true, buffer = self.buffer})
     end
 
     -- Close Strawberry
     for _, keymap in ipairs(self.config.keymaps.close) do
         vim.keymap.set("n", keymap, function()
             return vim.api.nvim_command(Commands.CLOSE)
-        end, {silent = true, buffer = buf})
+        end, {silent = true, buffer = self.buffer})
     end
 
     -- Keymaps for each item
@@ -261,20 +257,19 @@ function Strawberry:register_keymaps(buf)
         local key = item.key
         -- Break if key is nil longer than one character
         if (not key or #key > 1) then break end
-        vim.keymap.set("n", tostring(key),
-                       function() self.items[i]:execute(self.ctx) end,
-                       {silent = true, buffer = buf})
+        vim.keymap.set("n", tostring(key), -- TODO: revisit
+        function() self.items[i]:execute(self.ctx) end,
+                       {silent = true, buffer = self.buffer})
     end
 end
 
 -- Renders Strawberry buffer
-function Strawberry:render(canvas, items)
+function Strawberry:render()
     Strawberry:modifiable(true)
     -- Set buffer content
-    local lines = self:get_stringified_items(items)
-    vim.api.nvim_buf_set_lines(canvas.buf, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(canvas.win, canvas.buf)
-
+    local lines = get_stringified_rows(self.items)
+    vim.api.nvim_buf_set_lines(self.buffer, 0, #lines, false, lines)
+    vim.api.nvim_win_set_buf(self.window, self.buffer)
     Strawberry:modifiable(false)
 end
 
@@ -288,13 +283,13 @@ end
 
 -- Make the buffer modifiable/non-modifiable
 function Strawberry:modifiable(modifiable)
-    vim.api.nvim_buf_set_option(self.canvas.buf, 'modifiable', modifiable)
+    vim.api.nvim_buf_set_option(self.buffer, 'modifiable', modifiable)
 end
 
--- Recalculate items and redraw the buffer
-function Strawberry:redraw(items)
-    if not items then Strawberry:register_items(self.picker) end
-    Strawberry:render(self.canvas, self.items)
+-- Resets the buffer
+function Strawberry:reset()
+    Strawberry:register_items()
+    Strawberry:render()
 end
 
 -- Register a config into Strawberry
@@ -303,16 +298,16 @@ function Strawberry:register_config(config)
 end
 
 -- Save useful context
-function Strawberry:register_ctx()
+function Strawberry:register_ctx(picker_name)
     -- This is where Strawberry was launched from.
+    self.ctx.picker_name = picker_name
     self.ctx.target_win = vim.api.nvim_get_current_win()
     self.ctx.target_buf = vim.api.nvim_get_current_buf()
 end
 
--- Register items for the picker and set hotkeys for each item
-function Strawberry:register_items(picker)
-    self.items = picker.get_items()
-
+-- Register items and set hotkeys for each item
+function Strawberry:register_items(items)
+    self.items = items
     -- Add keys to items
     local available_keys = get_available_keys(self.config)
     for i, item in ipairs(self.items) do
@@ -321,28 +316,25 @@ function Strawberry:register_items(picker)
     end
 end
 
--- Register a picker by name
-function Strawberry:register_picker(picker_name)
+-- Applies a picker to Strawberry
+function Strawberry:apply_picker(picker_name)
     local picker = self:get_picker(picker_name)
     if (not picker) then
         return error("No registered picker under name: " .. picker_name)
     end
-    self.picker = picker
-    return self.picker
+    Strawberry:register_config(picker.config)
+    Strawberry:register_items(picker.get_items())
 end
 
 -- Create a new split for Strawberry
-function Strawberry:create_canvas(config)
+function Strawberry:create_window()
     -- Create split
-    local height = vim.fn.min({#self.items, config.window_height}) + 1
+    local height = vim.fn.min({#self.items, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
-
-    local canvas = {
-        win = vim.api.nvim_get_current_win(),
-        buf = vim.api.nvim_create_buf(false, true)
-    }
-    utils.set_buffer_options(canvas.buf)
-    return canvas
+    self.window = vim.api.nvim_get_current_win()
+    self.buffer = vim.api.nvim_create_buf(false, true)
+    utils.set_buffer_options(self.buffer)
+    Strawberry:apply_keymaps()
 end
 
 function Strawberry:register_pickers(pickers)
@@ -355,7 +347,12 @@ end
 
 return {
     setup = Strawberry.setup,
-    create_item = function(opts) return Item:create(opts) end,
+    create_item = function(opts)
+        local item = Item:create(opts)
+        -- TODO fix this
+        item.keyz = 'a'
+        return item
+    end,
     -- public utils
     utils = {
         get_filename = utils.get_filename,
