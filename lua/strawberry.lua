@@ -44,8 +44,15 @@ local function delete_buffers_by_filetype(filetype)
 
     for _, buf in ipairs(buffers) do
         if vim.api.nvim_buf_is_loaded(buf) then
-            local buf_filetype = vim.api.nvim_buf_get_option(buf, 'filetype')
-            if buf_filetype == filetype then delete_buffer(buf) end
+            if vim.api.nvim_buf_get_option(buf, 'filetype') == filetype then
+                -- local ok, err = pcall(vim.api.nvim_buf_delete, buf,
+                -- {force = true})
+                -- if not ok then
+                -- vim.notify("Failed to delete buffer: " .. err,
+                -- vim.log.levels.ERROR)
+                -- end
+                delete_buffer(buf)
+            end
         end
     end
 end
@@ -80,7 +87,7 @@ end
 
 -- Enums --
 local Commands = {
-    RESET = "StrawberryReset",
+    REDRAW = "StrawberryRedraw",
     CLOSE = "StrawberryClose",
     SELECT = "StrawberrySelect",
     DELETE = "StrawberryDelete"
@@ -125,12 +132,14 @@ function Strawberry:setup(props)
 end
 
 -- Initialize Strawberry
-function Strawberry:init(picker)
+function Strawberry:init(picker_name)
     Strawberry:close()
-    Strawberry:register_ctx(picker)
+    Strawberry:register_ctx()
     Strawberry:register_listeners()
-    Strawberry:apply_picker(picker)
+    Strawberry:apply_picker(picker_name)
+    Strawberry:apply_items(self.picker.get_items())
     Strawberry:create_window()
+
     Strawberry:render()
 end
 
@@ -172,10 +181,17 @@ function Strawberry:register_listeners()
     end
 
     -- Commands Listeners --
-    -- Handle reset
-    vim.api.nvim_create_user_command(Commands.RESET,
+    -- Handle Reset
+    vim.api.nvim_create_user_command(Commands.REDRAW,
                                      function() Strawberry:reset() end,
                                      {nargs = '?'})
+
+    -- Handle Delete
+    vim.api.nvim_create_user_command(Commands.DELETE, function(args)
+        local item_index = tonumber(args.args)
+        self.items[item_index]:delete()
+        Strawberry:reset()
+    end, {nargs = '?'})
 
     -- Handle Close
     vim.api.nvim_create_user_command(Commands.CLOSE,
@@ -185,17 +201,31 @@ function Strawberry:register_listeners()
     -- Handle Select
     vim.api.nvim_create_user_command(Commands.SELECT, function(args)
         local item_index = tonumber(args.args)
-        -- TODO: revisit
         self.items[item_index]:execute(self.ctx)
         if (self.config.close_on_select) then
             vim.api.nvim_command(Commands.CLOSE)
         else
-            vim.api.nvim_command(Commands.RESET)
+            vim.api.nvim_command(Commands.REDRAW)
         end
     end, {nargs = '?'})
 end
 
-function Strawberry:close() delete_buffers_by_filetype(STRAWBERRY_FILETYPE) end
+-- Hack: Close window using :close since deleting self.window isn't working as expected
+local function safe_close_window()
+    if #vim.api.nvim_tabpage_list_wins(0) > 1 then
+        local ok, err = pcall(vim.api.nvim_command, 'close')
+        if not ok then
+            vim.notify("Failed to close window: " .. err, vim.log.levels.ERROR)
+        end
+    end
+end
+
+function Strawberry:close()
+    delete_buffers_by_filetype(STRAWBERRY_FILETYPE)
+    safe_close_window()
+    self.window = nil
+    self.buffer = nil
+end
 
 -- Validates a picker
 function Strawberry:validate_picker(picker)
@@ -224,8 +254,8 @@ function Strawberry:validate_picker(picker)
     return true
 end
 
--- Parses items to be rendered by Strawberry
-local function get_stringified_rows(items)
+-- Parses items into lines to be rendered by Strawberry
+local function get_lines(items)
     local lines = {}
     local max_title_length = utils.get_max_title_length(items)
     for _, item in pairs(items) do
@@ -238,27 +268,43 @@ end
 function Strawberry:apply_keymaps()
     -- Common keymaps --
     -- Select item
-    for _, keymap in ipairs(self.config.keymaps.select_item) do
-        vim.keymap.set("n", keymap, function()
-            local item_index = vim.api.nvim_win_get_cursor(0)[1]
-            return vim.api.nvim_command(Commands.SELECT .. tostring(item_index))
-        end, {silent = true, buffer = self.buffer})
+    if (self.config.keymaps.select_item) then
+        for _, keymap in ipairs(self.config.keymaps.select_item) do
+            vim.keymap.set("n", keymap, function()
+                local item_index = vim.api.nvim_win_get_cursor(0)[1]
+                return vim.api.nvim_command(Commands.SELECT ..
+                                                tostring(item_index))
+            end, {silent = true, buffer = self.buffer})
+        end
+    end
+
+    -- Delete item
+    if (self.config.keymaps.delete_item) then
+        for _, keymap in ipairs(self.config.keymaps.delete_item) do
+            vim.keymap.set("n", keymap, function()
+                local item_index = vim.api.nvim_win_get_cursor(0)[1]
+                return vim.api.nvim_command(Commands.DELETE ..
+                                                tostring(item_index))
+            end, {silent = true, buffer = self.buffer})
+        end
     end
 
     -- Close Strawberry
-    for _, keymap in ipairs(self.config.keymaps.close) do
-        vim.keymap.set("n", keymap, function()
-            return vim.api.nvim_command(Commands.CLOSE)
-        end, {silent = true, buffer = self.buffer})
+    if (self.config.keymaps.close) then
+        for _, keymap in ipairs(self.config.keymaps.close) do
+            vim.keymap.set("n", keymap, function()
+                return vim.api.nvim_command(Commands.CLOSE)
+            end, {silent = true, buffer = self.buffer})
+        end
     end
 
     -- Keymaps for each item
     for i, item in ipairs(self.items) do
         local key = item.key
-        -- Break if key is nil longer than one character
+        -- Break if key is nil or longer than one character
         if (not key or #key > 1) then break end
-        vim.keymap.set("n", tostring(key), -- TODO: revisit
-        function() self.items[i]:execute(self.ctx) end,
+        vim.keymap.set("n", tostring(key),
+                       function() self.items[i]:execute(self.ctx) end,
                        {silent = true, buffer = self.buffer})
     end
 end
@@ -267,10 +313,12 @@ end
 function Strawberry:render()
     Strawberry:modifiable(true)
     -- Set buffer content
-    local lines = get_stringified_rows(self.items)
+    local lines = get_lines(self.items)
+    if #lines == 0 then return false end
     vim.api.nvim_buf_set_lines(self.buffer, 0, #lines, false, lines)
     vim.api.nvim_win_set_buf(self.window, self.buffer)
     Strawberry:modifiable(false)
+    return true
 end
 
 -- Get picker by name
@@ -281,15 +329,24 @@ function Strawberry:get_picker(picker_name)
     return nil
 end
 
--- Make the buffer modifiable/non-modifiable
+-- Set the buffer as modifiable/non-modifiable
 function Strawberry:modifiable(modifiable)
     vim.api.nvim_buf_set_option(self.buffer, 'modifiable', modifiable)
 end
 
--- Resets the buffer
+local function is_buffer_empty(buf)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    return #lines == 0 or (#lines == 1 and lines[1] == "")
+end
+
+-- Resets Strawberry's buffer
 function Strawberry:reset()
-    Strawberry:register_items()
-    Strawberry:render()
+    local items = self.picker.get_items()
+    Strawberry:apply_items(items)
+    Strawberry:close()
+    Strawberry:create_window()
+    local ok = Strawberry:render()
+    if not ok then Strawberry:close() end
 end
 
 -- Register a config into Strawberry
@@ -298,15 +355,14 @@ function Strawberry:register_config(config)
 end
 
 -- Save useful context
-function Strawberry:register_ctx(picker_name)
-    -- This is where Strawberry was launched from.
-    self.ctx.picker_name = picker_name
+function Strawberry:register_ctx()
     self.ctx.target_win = vim.api.nvim_get_current_win()
     self.ctx.target_buf = vim.api.nvim_get_current_buf()
+    self.ctx.cwd = vim.loop.cwd()
 end
 
--- Register items and set hotkeys for each item
-function Strawberry:register_items(items)
+-- Register items and set hotkeys for each of them
+function Strawberry:apply_items(items)
     self.items = items
     -- Add keys to items
     local available_keys = get_available_keys(self.config)
@@ -319,11 +375,11 @@ end
 -- Applies a picker to Strawberry
 function Strawberry:apply_picker(picker_name)
     local picker = self:get_picker(picker_name)
+    self.picker = picker
     if (not picker) then
         return error("No registered picker under name: " .. picker_name)
     end
     Strawberry:register_config(picker.config)
-    Strawberry:register_items(picker.get_items())
 end
 
 -- Create a new split for Strawberry
@@ -349,8 +405,6 @@ return {
     setup = Strawberry.setup,
     create_item = function(opts)
         local item = Item:create(opts)
-        -- TODO fix this
-        item.keyz = 'a'
         return item
     end,
     -- public utils
