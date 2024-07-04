@@ -41,16 +41,9 @@ local function delete_buffer(buf) vim.api.nvim_buf_delete(buf, {force = true}) e
 -- Deletes buffers by filetype
 local function delete_buffers_by_filetype(filetype)
     local buffers = vim.api.nvim_list_bufs()
-
     for _, buf in ipairs(buffers) do
         if vim.api.nvim_buf_is_loaded(buf) then
             if vim.api.nvim_buf_get_option(buf, 'filetype') == filetype then
-                -- local ok, err = pcall(vim.api.nvim_buf_delete, buf,
-                -- {force = true})
-                -- if not ok then
-                -- vim.notify("Failed to delete buffer: " .. err,
-                -- vim.log.levels.ERROR)
-                -- end
                 delete_buffer(buf)
             end
         end
