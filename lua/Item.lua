@@ -21,6 +21,11 @@ local function sanitize_props(opts)
     if (type(opts.on_select) ~= 'function') then
         error("Item on_select must be a function")
     end
+
+    -- validate on_delete
+    if (opts.on_delete and type(opts.on_delete) ~= 'function') then
+        error("Item on_delete must be a function")
+    end
 end
 
 --[[
@@ -47,11 +52,15 @@ function Item:create(props)
         value = props.value,
         title = props.title,
         label = props.label or "",
-        on_select = props.on_select
+        on_select = props.on_select,
+        on_delete = props.on_delete or nil
     }
     setmetatable(item, {__index = Item})
     return item
 end
+
+-- To be called when the item is deleted
+function Item:delete() if self.on_delete then self.on_delete() end end
 
 -- To be called when the item is selected
 function Item:execute(ctx) self.on_select(self.value, ctx) end
