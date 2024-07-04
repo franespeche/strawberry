@@ -2,64 +2,98 @@
 _A tasty fruit covered in seeds._ 
 
 ## TL;DR:
-Neovim Plugin to create custom lists with specific actions per list item.
+Neovim Plugin to create custom lists (pickers) with specific actions to be executed for each item.
 
-For example, we could create a custom `get_recent_files` method that returns a list with n items, each corresponding with a recent file, and defining a custom action to be executed for each selected item.
-
-If no action specified, defaults to `open_file`.
-
-https://github.com/franespeche/strawberry/assets/73555733/2de8cb08-f966-4658-afab-37e139427417
+For example, we could create a custom `active_buffers` picker that returns a list with n items (each corresponding with an active buffer) 
+and use a built in `open_file` function (or a custom function instead) to be executed for each selected item.
 
 # Usage:
-1. Define a custom action which will return a list of items (seeds), by using the built in `create_seed` method for each item:
+1. Setup the plugin
 
 ```lua
--- note that we'll need this method to create each item
--- @param id: number [will be deprecated]
--- @param value: The value of the item, will also be passed into the item's action
--- @param title: The title to be displayed between the item number and the item value
--- @param action?: Custom action to be executed when selecting the item. Default: open_file
-local create_seed = require("strawberry").create_seed
+-- # lua/plugins/strawberry/init.lua
+-- Imports --
+local components = require("plugins.strawberry.components")
+local active_buffers = components.active_buffers
 
--- custom logic to generate a list of recent files
-local show_recent_files = {
-  name = "show_recent_files",
-  format_value = function(v) return (remove_home_path(v)) end,
-  callback = function(limit)
-    limit = limit or 15
-
-    local oldfiles = vim.v.oldfiles
-    local seeds = {}
-
-    local i = 1
-    while (i <= #oldfiles and (#seeds < limit or i < 10)) do
-      local file = oldfiles[i]
-      if (vim.fn.filereadable(file) == 1) then
-        local seed = create_seed(#seeds + 1, file, get_filename(file))
-        table.insert(seeds, seed)
-      end
-      i = i + 1
-    end
-    return seeds
-  end,
-}
-
-```
-2. Setup the plugin:
-```lua
--- setup
+-- Setup --
 require("strawberry"):setup({
-  actions = { show_recent_files },
+  pickers = {
+    active_buffers,
+  },
   config = {
-    window_height = 5 -- specify the amount of lines that will be visible in the list [not supported yet]
+    window_height = 15, -- strawberry's window height
+    close_on_leave = true, -- close when leaving the picker's window
+    close_on_select = true, -- close on item selection
+    keymaps = {
+      close = { "<esc>", "q" }, -- close the picker
+      select_item = { "<cr>" },
+      delete_item = nil,
+    },
   },
 })
-```
-3. Keymap it
-```lua
-vim.keymap.set("n", "<leader>rf", ":Strawberry show_git_worktree_recent_files<cr>", { silent = true, noremap = true })
+
+-- Keymaps --
+Keymap("n", "<leader>rf", ":Strawberry active_buffers<cr>", Opts)
 ```
 
-# notes:
-Both the README file and the plugin are in a beta state
+2. Define a custom picker `active_buffers` which will return a list of active buffers, by using the built in `create_item` method for each item:
+
+```lua
+-- # lua/plugins/strawberry/components/active_buffers.lua
+
+-- Utils --
+local create_item = require("strawberry").create_item
+local get_filename = require("strawberry").utils.get_filename
+local remove_home_path = require("strawberry").utils.remove_home_path
+local open_file = require("strawberry").utils.open_file
+
+-- Define the picker --
+local picker = {
+  name = "active_buffers",
+  -- Note that this config will override the global config set in the setup function
+  config = {
+    close_on_leave = true,
+    close_on_select = true,
+    keymaps = { 
+      delete_item = { "d" } -- This will execute the on_delete function on the selected item
+    },
+  },
+  -- Function with the logic to get the active buffers
+  get_items = function()
+    local limit = 15
+    local bufs = vim.api.nvim_list_bufs()
+    local menu_items = {}
+    local i = 1
+    while (i <= #bufs and (#menu_items < limit or i < 10)) do
+      local buf = bufs[i]
+      if (vim.api.nvim_buf_is_loaded(buf)) then
+        local file = vim.api.nvim_buf_get_name(buf)
+        if file == "" then goto continue end
+        -- Create the Item
+        local item = create_item({
+          title = get_filename(file),
+          label = remove_home_path(file),
+          value = file,
+          on_select = open_file, -- Note that we are using the provided open_file function
+          on_delete = function()
+            vim.api.nvim_buf_delete(buf, { force = true }) -- Custom function to delete this buffer from the list of items
+          end,
+        })
+        table.insert(menu_items, item)
+      end
+      ::continue::
+      i = i + 1
+    end
+    return menu_items
+  end,
+}
+return picker
+```
+
+3. Run the picker with the keymap defined in the setup function
+
+# Demo
+The following video demonstrates a `recent_files_git_worktree` picker which, as the name suggests, displays a list of the recent files for the given git worktree we are standing at,
+and also a `active_buffers` picker with `on_delete` functionality.
 
