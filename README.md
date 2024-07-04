@@ -1,11 +1,21 @@
 # 🍓 Strawberry
 _A tasty fruit covered in seeds._ 
 
-## TL;DR:
+# TL;DR:
 Neovim Plugin to create custom lists (pickers) with specific actions to be executed for each item.
 
-For example, we could create a custom `active_buffers` picker that returns a list with n items (each corresponding with an active buffer) 
-and use a built in `open_file` function (or a custom function instead) to be executed for each selected item.
+For example, we could create a custom `active_buffers` picker that returns a list with `n` items (each corresponding with an active buffer) 
+and use a built-in `open_file` function (or a custom function instead) to be executed for each selected item.
+
+We could also create `custom menus`, or a list of `recent files`, or _some_other_awesome_self_crafted_picker, or, or, or.._
+
+# Demo
+The following video demonstrates a `recent_files_git_worktree` picker which, as the name suggests, displays a list of the recent files for the given `git worktree` we are standing at,
+and also a `active_buffers` picker with `on_delete` functionality (clicking `d` on an item will delete the selected buffer)
+
+
+https://github.com/franespeche/strawberry/assets/73555733/c8840368-f974-4e8e-9ec2-3f0af5525c01
+
 
 # Usage:
 1. Setup the plugin
@@ -37,7 +47,12 @@ require("strawberry"):setup({
 Keymap("n", "<leader>rf", ":Strawberry active_buffers<cr>", Opts)
 ```
 
-2. Define a custom picker `active_buffers` which will return a list of active buffers, by using the built in `create_item` method for each item:
+---
+
+2. Define a custom picker
+   
+This will create a `active_buffers` which will return a list of active buffers using the built-in `create_item` method for each item.
+Note that it is also setting a `on_delete` function which will take care of buffer deletion
 
 ```lua
 -- # lua/plugins/strawberry/components/active_buffers.lua
@@ -91,9 +106,10 @@ local picker = {
 return picker
 ```
 
-3. Run the picker with the keymap defined in the setup function
+3. Run a Strawberry picker with the keymap defined in the setup function
 
-# Demo
-The following video demonstrates a `recent_files_git_worktree` picker which, as the name suggests, displays a list of the recent files for the given git worktree we are standing at,
-and also a `active_buffers` picker with `on_delete` functionality.
+![Screen Recording 2024-07-04 at 3](https://github.com/franespeche/strawberry/assets/73555733/ce1d0857-d286-4943-98e2-fef28a44cae1)
+
+
+
 
