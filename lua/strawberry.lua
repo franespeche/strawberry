@@ -130,7 +130,7 @@ function Strawberry:init(picker_name)
     Strawberry:register_ctx()
     Strawberry:register_listeners()
     Strawberry:apply_picker(picker_name)
-    Strawberry:apply_items(self.picker.get_items())
+    Strawberry:apply_items(self.active_picker.get_items())
     Strawberry:create_window()
 
     Strawberry:render()
@@ -259,7 +259,6 @@ end
 
 -- Register keymaps for the Strawberry buffer
 function Strawberry:apply_keymaps()
-    -- Common keymaps --
     -- Select item
     if (self.config.keymaps.select_item) then
         for _, keymap in ipairs(self.config.keymaps.select_item) do
@@ -327,14 +326,9 @@ function Strawberry:modifiable(modifiable)
     vim.api.nvim_buf_set_option(self.buffer, 'modifiable', modifiable)
 end
 
-local function is_buffer_empty(buf)
-    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-    return #lines == 0 or (#lines == 1 and lines[1] == "")
-end
-
 -- Resets Strawberry's buffer
 function Strawberry:reset()
-    local items = self.picker.get_items()
+    local items = self.active_picker.get_items()
     Strawberry:apply_items(items)
     Strawberry:close()
     Strawberry:create_window()
@@ -368,10 +362,10 @@ end
 -- Applies a picker to Strawberry
 function Strawberry:apply_picker(picker_name)
     local picker = self:get_picker(picker_name)
-    self.picker = picker
     if (not picker) then
         return error("No registered picker under name: " .. picker_name)
     end
+    self.active_picker = picker
     Strawberry:register_config(picker.config)
 end
 
