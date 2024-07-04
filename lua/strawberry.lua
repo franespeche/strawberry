@@ -101,10 +101,13 @@ local Strawberry = {
         keymaps = {close = {"q"}, select_item = {"<cr>"}}
     },
     picker = nil,
-    canvas = {buf = nil, win = nil}, -- canvas is the window and buffer where Strawberry (with its items) will be rendered
     ctx = {
         target_win = nil, -- window where Strawberry was launched from
-        target_buf = nil -- buffer where Strawberry was launched from
+        target_buf = nil, -- buffer where Strawberry was launched from
+        cursor_line = nil, -- the cursor's line position where an item was selected
+        cursor_column = nil, -- the cursor's column position where an item was selected
+        window = nil, -- window where Strawberry is rendered
+        buffer = nil -- buffer where Strawberry is rendered
     }
 }
 
@@ -133,7 +136,7 @@ function Strawberry:init(picker_name)
     Strawberry:apply_items(self.active_picker.get_items())
     Strawberry:create_window()
 
-    Strawberry:render(self.buffer)
+    Strawberry:render(self.ctx.buffer)
 end
 
 local function get_cursor_position(win)
@@ -202,9 +205,9 @@ function Strawberry:register_listeners()
     vim.api.nvim_create_user_command(Commands.SELECT, function(args)
         local item_index = tonumber(args.args)
 
-        local line, column = get_cursor_position(self.window)
-        self.ctx.line = line
-        self.ctx.column = column
+        local line, column = get_cursor_position(self.ctx.window)
+        self.ctx.cursor_line = line
+        self.ctx.cursor_column = column
 
         self.items[item_index]:execute(self.ctx)
         if (self.config.close_on_select) then
@@ -215,7 +218,7 @@ function Strawberry:register_listeners()
     end, {nargs = '?'})
 end
 
--- Hack: Close window using :close since deleting self.window isn't working as expected
+-- Hack: Close window using :close since deleting self.ctx.window isn't working as expected
 local function safe_close_window()
     if #vim.api.nvim_tabpage_list_wins(0) > 1 then
         local ok, err = pcall(vim.api.nvim_command, 'close')
@@ -228,8 +231,8 @@ end
 function Strawberry:close()
     delete_buffers_by_filetype(STRAWBERRY_FILETYPE)
     safe_close_window()
-    self.window = nil
-    self.buffer = nil
+    self.ctx.window = nil
+    self.ctx.buffer = nil
 end
 
 -- Validates a picker
@@ -278,7 +281,7 @@ function Strawberry:apply_keymaps()
                 local item_index = vim.api.nvim_win_get_cursor(0)[1]
                 return vim.api.nvim_command(Commands.SELECT ..
                                                 tostring(item_index))
-            end, {silent = true, buffer = self.buffer})
+            end, {silent = true, buffer = self.ctx.buffer})
         end
     end
 
@@ -289,7 +292,7 @@ function Strawberry:apply_keymaps()
                 local item_index = vim.api.nvim_win_get_cursor(0)[1]
                 return vim.api.nvim_command(Commands.DELETE ..
                                                 tostring(item_index))
-            end, {silent = true, buffer = self.buffer})
+            end, {silent = true, buffer = self.ctx.buffer})
         end
     end
 
@@ -298,7 +301,7 @@ function Strawberry:apply_keymaps()
         for _, keymap in ipairs(self.config.keymaps.close) do
             vim.keymap.set("n", keymap, function()
                 return vim.api.nvim_command(Commands.CLOSE)
-            end, {silent = true, buffer = self.buffer})
+            end, {silent = true, buffer = self.ctx.buffer})
         end
     end
 
@@ -309,7 +312,7 @@ function Strawberry:apply_keymaps()
         if (not key or #key > 1) then break end
         vim.keymap.set("n", tostring(key),
                        function() self.items[i]:execute(self.ctx) end,
-                       {silent = true, buffer = self.buffer})
+                       {silent = true, buffer = self.ctx.buffer})
     end
 end
 
@@ -320,7 +323,7 @@ function Strawberry:render(buffer)
     local lines = get_lines(self.items)
     if #lines == 0 then return false end
     vim.api.nvim_buf_set_lines(buffer, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(self.window, buffer)
+    vim.api.nvim_win_set_buf(self.ctx.window, buffer)
     Strawberry:modifiable(false)
     return true
 end
@@ -339,9 +342,12 @@ function Strawberry:modifiable(modifiable)
 end
 
 function Strawberry:restore_cursor_position()
-    local lines_amount = vim.api.nvim_buf_line_count(self.buffer)
-    if self.ctx.line > lines_amount then self.ctx.line = lines_amount end
-    vim.api.nvim_win_set_cursor(self.window, {self.ctx.line, self.ctx.column})
+    local lines_amount = vim.api.nvim_buf_line_count(self.ctx.buffer)
+    if self.ctx.cursor_line > lines_amount then
+        self.ctx.cursor_line = lines_amount
+    end
+    vim.api.nvim_win_set_cursor(self.ctx.window,
+                                {self.ctx.cursor_line, self.ctx.cursor_column})
 end
 
 -- Resets Strawberry's buffer
@@ -350,7 +356,7 @@ function Strawberry:reset()
     Strawberry:apply_items(items)
     Strawberry:close()
     Strawberry:create_window()
-    local ok = Strawberry:render(self.buffer)
+    local ok = Strawberry:render(self.ctx.buffer)
     if not ok then
         Strawberry:close()
         return
@@ -368,7 +374,6 @@ end
 function Strawberry:register_ctx()
     self.ctx.target_win = vim.api.nvim_get_current_win()
     self.ctx.target_buf = vim.api.nvim_get_current_buf()
-    self.ctx.cwd = vim.loop.cwd()
 end
 
 -- Register items and set hotkeys for each of them
@@ -397,9 +402,9 @@ function Strawberry:create_window()
     -- Create split
     local height = vim.fn.min({#self.items, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
-    self.window = vim.api.nvim_get_current_win()
-    self.buffer = vim.api.nvim_create_buf(false, true)
-    utils.set_buffer_options(self.buffer)
+    self.ctx.window = vim.api.nvim_get_current_win()
+    self.ctx.buffer = vim.api.nvim_create_buf(false, true)
+    utils.set_buffer_options(self.ctx.buffer)
     Strawberry:apply_keymaps()
 end
 
