@@ -133,7 +133,14 @@ function Strawberry:init(picker_name)
     Strawberry:apply_items(self.active_picker.get_items())
     Strawberry:create_window()
 
-    Strawberry:render()
+    Strawberry:render(self.buffer)
+end
+
+local function get_cursor_position(win)
+    local cursor = vim.api.nvim_win_get_cursor(win)
+    local line = cursor[1]
+    local column = cursor[2]
+    return line, column
 end
 
 -- Creates commands and event listeners
@@ -194,6 +201,11 @@ function Strawberry:register_listeners()
     -- Handle Select
     vim.api.nvim_create_user_command(Commands.SELECT, function(args)
         local item_index = tonumber(args.args)
+
+        local line, column = get_cursor_position(self.window)
+        self.ctx.line = line
+        self.ctx.column = column
+
         self.items[item_index]:execute(self.ctx)
         if (self.config.close_on_select) then
             vim.api.nvim_command(Commands.CLOSE)
@@ -302,13 +314,13 @@ function Strawberry:apply_keymaps()
 end
 
 -- Renders Strawberry buffer
-function Strawberry:render()
+function Strawberry:render(buffer)
     Strawberry:modifiable(true)
     -- Set buffer content
     local lines = get_lines(self.items)
     if #lines == 0 then return false end
-    vim.api.nvim_buf_set_lines(self.buffer, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(self.window, self.buffer)
+    vim.api.nvim_buf_set_lines(buffer, 0, #lines, false, lines)
+    vim.api.nvim_win_set_buf(self.window, buffer)
     Strawberry:modifiable(false)
     return true
 end
@@ -323,7 +335,13 @@ end
 
 -- Set the buffer as modifiable/non-modifiable
 function Strawberry:modifiable(modifiable)
-    vim.api.nvim_buf_set_option(self.buffer, 'modifiable', modifiable)
+    vim.api.nvim_buf_set_option(0, 'modifiable', modifiable)
+end
+
+function Strawberry:restore_cursor_position()
+    local lines_amount = vim.api.nvim_buf_line_count(self.buffer)
+    if self.ctx.line > lines_amount then self.ctx.line = lines_amount end
+    vim.api.nvim_win_set_cursor(self.window, {self.ctx.line, self.ctx.column})
 end
 
 -- Resets Strawberry's buffer
@@ -332,8 +350,13 @@ function Strawberry:reset()
     Strawberry:apply_items(items)
     Strawberry:close()
     Strawberry:create_window()
-    local ok = Strawberry:render()
-    if not ok then Strawberry:close() end
+    local ok = Strawberry:render(self.buffer)
+    if not ok then
+        Strawberry:close()
+        return
+    end
+    -- Restore cursor position
+    Strawberry:restore_cursor_position()
 end
 
 -- Register a config into Strawberry
