@@ -129,13 +129,12 @@ end
 
 -- Initialize Strawberry
 function Strawberry:init(picker_name)
-    Strawberry:close()
     Strawberry:register_ctx()
     Strawberry:register_listeners()
     Strawberry:apply_picker(picker_name)
     Strawberry:apply_items(self.active_picker.get_items())
     Strawberry:create_window()
-
+    Strawberry:apply_keymaps()
     Strawberry:render(self.ctx.buffer)
 end
 
@@ -218,19 +217,8 @@ function Strawberry:register_listeners()
     end, {nargs = '?'})
 end
 
--- Hack: Close window using :close since deleting self.ctx.window isn't working as expected
-local function safe_close_window()
-    if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-        local ok, err = pcall(vim.api.nvim_command, 'close')
-        if not ok then
-            vim.notify("Failed to close window: " .. err, vim.log.levels.ERROR)
-        end
-    end
-end
-
 function Strawberry:close()
     delete_buffers_by_filetype(STRAWBERRY_FILETYPE)
-    safe_close_window()
     self.ctx.window = nil
     self.ctx.buffer = nil
 end
@@ -354,14 +342,11 @@ end
 function Strawberry:reset()
     local items = self.active_picker.get_items()
     Strawberry:apply_items(items)
-    Strawberry:close()
-    Strawberry:create_window()
     local ok = Strawberry:render(self.ctx.buffer)
     if not ok then
         Strawberry:close()
         return
     end
-    -- Restore cursor position
     Strawberry:restore_cursor_position()
 end
 
@@ -405,7 +390,6 @@ function Strawberry:create_window()
     self.ctx.window = vim.api.nvim_get_current_win()
     self.ctx.buffer = vim.api.nvim_create_buf(false, true)
     utils.set_buffer_options(self.ctx.buffer)
-    Strawberry:apply_keymaps()
 end
 
 function Strawberry:register_pickers(pickers)

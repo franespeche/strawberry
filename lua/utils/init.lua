@@ -1,6 +1,5 @@
 local open_file = function(filepath, ctx)
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_win_set_buf(ctx.target_win, buf)
+    vim.api.nvim_set_current_win(ctx.target_win)
     vim.cmd('e ' .. filepath)
 end
 
