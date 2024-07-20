@@ -36,7 +36,7 @@ local function get_available_keys(config)
     return result
 end
 
--- Deletes buffer
+-- Deletes a buffer
 local function delete_buffer(buf) vim.api.nvim_buf_delete(buf, {force = true}) end
 
 -- Deletes buffers by filetype
@@ -130,13 +130,19 @@ end
 
 -- Initialize Strawberry
 function Strawberry:init(picker_name)
+    Strawberry:apply_picker(picker_name)
+    local items = self.active_picker.get_items()
+    if (#items == 0) then
+        vim.notify("Strawberry: No items to display", vim.log.levels.WARN,
+                   {title = "Strawberry"})
+        return
+    end
+    Strawberry:register_items(items)
     Strawberry:register_ctx()
     Strawberry:register_listeners()
-    Strawberry:apply_picker(picker_name)
-    Strawberry:apply_items(self.active_picker.get_items())
     Strawberry:create_window()
     Strawberry:apply_keymaps()
-    Strawberry:render(self.ctx.buffer)
+    Strawberry:render()
 end
 
 local function get_cursor_position(win)
@@ -306,13 +312,13 @@ function Strawberry:apply_keymaps()
 end
 
 -- Renders Strawberry buffer
-function Strawberry:render(buffer)
+function Strawberry:render()
     Strawberry:modifiable(true)
     -- Set buffer content
     local lines = get_lines(self.items)
     if #lines == 0 then return false end
-    vim.api.nvim_buf_set_lines(buffer, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(self.ctx.window, buffer)
+    vim.api.nvim_buf_set_lines(self.ctx.buffer, 0, #lines, false, lines)
+    vim.api.nvim_win_set_buf(self.ctx.window, self.ctx.buffer)
     Strawberry:modifiable(false)
     return true
 end
@@ -342,7 +348,7 @@ end
 -- Resets Strawberry's buffer
 function Strawberry:reset()
     local items = self.active_picker.get_items()
-    Strawberry:apply_items(items)
+    Strawberry:register_items(items)
     local ok = Strawberry:render(self.ctx.buffer)
     if not ok then
         Strawberry:close()
@@ -362,8 +368,8 @@ function Strawberry:register_ctx()
     self.ctx.origin_buf = vim.api.nvim_get_current_buf() -- the buffer where Strawberry was launched from
 end
 
--- Register items and set hotkeys for each of them
-function Strawberry:apply_items(items)
+-- Register items and set uniq keys to each of them
+function Strawberry:register_items(items)
     self.items = items
     -- Add keys to items
     local available_keys = get_available_keys(self.config)
