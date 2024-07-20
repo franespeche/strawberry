@@ -2,6 +2,7 @@
 local Item = require('Item')
 local utils = require('utils')
 local table_utils = utils.table_utils
+local actions = require('actions')
 
 -- Helpers --
 
@@ -413,5 +414,6 @@ return {
         is_git_directory = utils.is_git_directory,
         open_file = utils.open_file,
         remove_home_path = utils.remove_home_path
-    }
+    },
+    actions = {open_file = actions.open_file}
 }

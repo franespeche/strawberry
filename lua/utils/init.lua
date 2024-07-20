@@ -1,4 +1,8 @@
+-- @deprecated: use actions.open_file instead
 local open_file = function(filepath, ctx)
+    vim.notify(
+        "utils.open_file is deprecated. Please use actions.open_file instead.",
+        vim.log.levels.WARN)
     vim.api.nvim_set_current_win(ctx.origin_win)
     vim.cmd('e ' .. filepath)
 end
