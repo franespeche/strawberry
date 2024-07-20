@@ -349,7 +349,7 @@ end
 function Strawberry:reset()
     local items = self.active_picker.get_items()
     Strawberry:register_items(items)
-    local ok = Strawberry:render(self.ctx.buffer)
+    local ok = Strawberry:render()
     if not ok then
         Strawberry:close()
         return
