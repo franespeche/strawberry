@@ -102,8 +102,8 @@ local Strawberry = {
     },
     picker = nil,
     ctx = {
-        target_win = nil, -- window where Strawberry was launched from
-        target_buf = nil, -- buffer where Strawberry was launched from
+        origin_win = nil, -- window where Strawberry was launched from
+        origin_buf = nil, -- buffer where Strawberry was launched from
         cursor_line = nil, -- the cursor's line position where an item was selected
         cursor_column = nil, -- the cursor's column position where an item was selected
         window = nil, -- window where Strawberry is rendered
@@ -357,8 +357,8 @@ end
 
 -- Save useful context
 function Strawberry:register_ctx()
-    self.ctx.target_win = vim.api.nvim_get_current_win()
-    self.ctx.target_buf = vim.api.nvim_get_current_buf()
+    self.ctx.origin_win = vim.api.nvim_get_current_win() -- the window where Strawberry was launched from
+    self.ctx.origin_buf = vim.api.nvim_get_current_buf() -- the buffer where Strawberry was launched from
 end
 
 -- Register items and set hotkeys for each of them
