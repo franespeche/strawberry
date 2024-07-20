@@ -133,7 +133,7 @@ function Strawberry:init(picker_name)
     Strawberry:apply_picker(picker_name)
     local items = self.active_picker.get_items()
     if (#items == 0) then
-        vim.notify("Strawberry: No items to display", vim.log.levels.WARN,
+        vim.notify("[Strawberry]: No items to display", vim.log.levels.WARN,
                    {title = "Strawberry"})
         return
     end
