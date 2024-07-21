@@ -176,8 +176,10 @@ function Strawberry:register_listeners()
                 vim.cmd([[syntax clear]])
                 vim.cmd(
                     [[syntax match strawberryLineKey /\v^\s\s((\d|\w|·))/ contained]])
+                -- HACK: Note that the last space is a non-breaking space "( |·)" (not a regular space).
+                -- This is to differentiate between title from the description.
                 vim.cmd(
-                    [[syntax match strawberryTitle /\v^\s\s(\d|\w|·)\s+(.+)\s+/ contains=strawberryLineKey]])
+                    [[syntax match strawberryTitle /\v^\s\s(\d|\w|·)\s+(.+)\s+( |·)/ contains=strawberryLineKey]])
                 vim.cmd([[hi def link strawberryLineKey String]])
                 vim.cmd([[hi def link strawberryTitle Type]])
             end

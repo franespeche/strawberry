@@ -42,6 +42,7 @@ end
      @param {string} label(optional) - The label of the item
      @param {string} value(optional) - The value of the item. This will be passed to the item's on_select
      @param {function} on_select - The on_select to be executed when the item is selected
+     @param {function} on_delete - The on_delete to be executed when the item is deleted
 ]] --
 local Item = {title = nil, label = nil, value = nil, on_select = nil}
 
@@ -68,7 +69,8 @@ function Item:execute(ctx) self.on_select(self.value, ctx) end
 -- Returns the content of the item as a string
 function Item:to_string(max_title_length)
     local spacer = "  "
-    local punctuation_space = " " -- note this is not the same ascii as space. this will also be used as a highlight delimiter
+    local punctuation_space = " " -- Note this is not the same ascii as space. This will also be used as a highlight delimiter.
+    -- local punctuation_space = "·"
     local column_delimiter = spacer .. punctuation_space .. spacer
     local auto_width = string.rep(' ', max_title_length - #self.title)
 
