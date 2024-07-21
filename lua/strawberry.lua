@@ -130,7 +130,6 @@ function Strawberry:setup(props)
     validate_setup_props(props)
     setmetatable(self, {__index = Strawberry})
 
-    print(self.config.label_delimiter)
     Strawberry:register_pickers(props.pickers)
     Strawberry:register_config(props.config)
     -- Create init command
