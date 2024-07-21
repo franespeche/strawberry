@@ -130,6 +130,8 @@ end
 
 -- Initialize Strawberry
 function Strawberry:init(picker_name)
+    -- Close any existing Strawberry
+    Strawberry:close()
     Strawberry:apply_picker(picker_name)
     local items = self.active_picker.get_items()
     if (#items == 0) then
