@@ -29,21 +29,6 @@ local function is_git_directory()
     return vim.api.nvim_exec("!git rev-parse --is-inside-work-tree", true)
 end
 
-local function set_buffer_options(buf)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-    vim.api.nvim_set_option('number', false)
-    vim.api.nvim_set_option('relativenumber', false)
-    vim.api.nvim_set_option('foldcolumn', "0")
-    vim.api.nvim_set_option('foldenable', false)
-    vim.api.nvim_set_option('cursorline', true)
-    vim.api.nvim_set_option('spell', false)
-    vim.api.nvim_set_option('wrap', false)
-    vim.api.nvim_buf_set_option(buf, 'filetype', "strawberry")
-    vim.api.nvim_buf_set_option(buf, 'buflisted', false)
-    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-end
-
 local function get_max_title_length(items)
     local max = 0
     for _, item in pairs(items) do
@@ -72,8 +57,7 @@ local U = {
     get_metatable_field = get_metatable_field,
     is_git_directory = is_git_directory,
     open_file = open_file,
-    remove_home_path = remove_home_path,
-    set_buffer_options = set_buffer_options
+    remove_home_path = remove_home_path
 }
 
 return U

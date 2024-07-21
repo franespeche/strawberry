@@ -396,7 +396,19 @@ function Strawberry:create_window()
     vim.cmd('botright ' .. height .. ' split')
     self.ctx.window = vim.api.nvim_get_current_win()
     self.ctx.buffer = vim.api.nvim_create_buf(false, true)
-    utils.set_buffer_options(self.ctx.buffer)
+
+    vim.api.nvim_set_option('number', false)
+    vim.api.nvim_set_option('relativenumber', false)
+    vim.api.nvim_set_option('foldcolumn', "0")
+    vim.api.nvim_set_option('foldenable', false)
+    vim.api.nvim_set_option('cursorline', true)
+    vim.api.nvim_set_option('spell', false)
+    vim.api.nvim_set_option('wrap', false)
+    vim.api
+        .nvim_buf_set_option(self.ctx.buffer, 'filetype', STRAWBERRY_FILETYPE)
+    vim.api.nvim_buf_set_option(self.ctx.buffer, 'buflisted', false)
+    vim.api.nvim_buf_set_option(self.ctx.buffer, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
 end
 
 function Strawberry:register_pickers(pickers)
