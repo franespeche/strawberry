@@ -67,18 +67,16 @@ function Item:delete() if self.on_delete then self.on_delete() end end
 function Item:execute(ctx) self.on_select(self.value, ctx) end
 
 -- Returns the content of the item as a string
-function Item:to_string(max_title_length)
+function Item:to_string(max_title_length, delimiter)
     local spacer = "  "
-    local punctuation_space = " " -- Note this is not the same ascii as space. This will also be used as a highlight delimiter.
-    -- local punctuation_space = "·"
-    local column_delimiter = spacer .. punctuation_space .. spacer
+    local label_delimiter = spacer .. delimiter .. spacer
     local auto_width = string.rep(' ', max_title_length - #self.title)
 
     local line_key = spacer .. tostring(self.key) .. spacer
     local title = self.title .. auto_width
     local label = self.label
 
-    return line_key .. title .. column_delimiter .. label
+    return line_key .. title .. label_delimiter .. label
 end
 
 return Item

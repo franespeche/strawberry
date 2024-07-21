@@ -110,7 +110,8 @@ local Strawberry = {
         window_height = 5, -- height of the strawberry window
         close_on_leave = false, -- close on BufLeave
         close_on_select = true, -- close on item selection
-        keymaps = {close = {"q"}, select_item = {"<cr>"}}
+        keymaps = {close = {"q"}, select_item = {"<cr>"}},
+        label_delimiter = " " -- delimiter character between the title and label. Note this is not a regular space character, so we can use it as a highlight delimiter.
     },
     picker = nil,
     ctx = {
@@ -175,11 +176,11 @@ function Strawberry:register_listeners()
             if (vim.fn.has("syntax")) then
                 vim.cmd([[syntax clear]])
                 vim.cmd(
-                    [[syntax match strawberryLineKey /\v^\s\s((\d|\w|·))/ contained]])
-                -- HACK: Note that the last space is a non-breaking space "( |·)" (not a regular space).
-                -- This is to differentiate between title from the description.
+                    [[syntax match strawberryLineKey /\v^\s\s((\d|\w))/ contained]])
                 vim.cmd(
-                    [[syntax match strawberryTitle /\v^\s\s(\d|\w|·)\s+(.+)\s+( |·)/ contains=strawberryLineKey]])
+                    'syntax match strawberryTitle /\\v^\\s\\s(\\d|\\w)\\s+(.+)\\s+( |·|' ..
+                        self.config.label_delimiter ..
+                        ')/ contains=strawberryLineKey')
                 vim.cmd([[hi def link strawberryLineKey String]])
                 vim.cmd([[hi def link strawberryTitle Type]])
             end
@@ -271,11 +272,11 @@ function Strawberry:validate_picker(picker)
 end
 
 -- Parses items into lines to be rendered by Strawberry
-local function get_lines(items)
+local function get_lines(items, label_delimiter)
     local lines = {}
     local max_title_length = utils.get_max_title_length(items)
     for _, item in pairs(items) do
-        table.insert(lines, item:to_string(max_title_length))
+        table.insert(lines, item:to_string(max_title_length, label_delimiter))
     end
     return lines
 end
@@ -328,7 +329,7 @@ function Strawberry:render()
     Strawberry:wipe_buffer(self.ctx.buffer)
     -- Set buffer content
     Strawberry:modifiable(true)
-    local lines = get_lines(self.items)
+    local lines = get_lines(self.items, self.config.label_delimiter)
     vim.api.nvim_buf_set_lines(self.ctx.buffer, 0, #lines, false, lines)
     vim.api.nvim_win_set_buf(self.ctx.window, self.ctx.buffer)
     Strawberry:modifiable(false)
