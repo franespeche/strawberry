@@ -133,13 +133,8 @@ function Strawberry:init(picker_name)
     -- Close any existing Strawberry
     Strawberry:close()
     Strawberry:apply_picker(picker_name)
-    local items = self.active_picker.get_items()
-    if (#items == 0) then
-        vim.notify("Strawberry: No items to display", vim.log.levels.WARN,
-                   {title = "Strawberry"})
-        return
-    end
-    Strawberry:register_items(items)
+    Strawberry:register_config(self.active_picker.config)
+    Strawberry:register_items()
     Strawberry:register_ctx()
     Strawberry:register_listeners()
     Strawberry:create_window()
@@ -314,14 +309,13 @@ end
 
 -- Renders Strawberry buffer
 function Strawberry:render()
-    Strawberry:modifiable(true)
+    Strawberry:wipe_buffer(self.ctx.buffer)
     -- Set buffer content
+    Strawberry:modifiable(true)
     local lines = get_lines(self.items)
-    if #lines == 0 then return false end
     vim.api.nvim_buf_set_lines(self.ctx.buffer, 0, #lines, false, lines)
     vim.api.nvim_win_set_buf(self.ctx.window, self.ctx.buffer)
     Strawberry:modifiable(false)
-    return true
 end
 
 -- Get picker by name
@@ -346,15 +340,16 @@ function Strawberry:restore_cursor_position()
                                 {self.ctx.cursor_line, self.ctx.cursor_column})
 end
 
+function Strawberry:wipe_buffer(buf)
+    Strawberry:modifiable(true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+    Strawberry:modifiable(false)
+end
+
 -- Resets Strawberry's buffer
 function Strawberry:reset()
-    local items = self.active_picker.get_items()
-    Strawberry:register_items(items)
-    local ok = Strawberry:render()
-    if not ok then
-        Strawberry:close()
-        return
-    end
+    Strawberry:register_items()
+    Strawberry:render()
     Strawberry:restore_cursor_position()
 end
 
@@ -370,7 +365,13 @@ function Strawberry:register_ctx()
 end
 
 -- Register items and set uniq keys to each of them
-function Strawberry:register_items(items)
+function Strawberry:register_items()
+    local items = self.active_picker.get_items()
+    if (#items == 0) then
+        vim.notify("Strawberry: No items to display", vim.log.levels.WARN,
+                   {title = "Strawberry"})
+        return
+    end
     self.items = items
     -- Add keys to items
     local available_keys = get_available_keys(self.config)
@@ -387,7 +388,6 @@ function Strawberry:apply_picker(picker_name)
         return error("No registered picker under name: " .. picker_name)
     end
     self.active_picker = picker
-    Strawberry:register_config(picker.config)
 end
 
 -- Create a new split for Strawberry
