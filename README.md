@@ -59,9 +59,8 @@ Note that it is also setting a `on_delete` function which will take care of buff
 
 -- Utils --
 local create_item = require("strawberry").create_item
-local get_filename = require("strawberry").utils.get_filename
-local remove_home_path = require("strawberry").utils.remove_home_path
-local open_file = require("strawberry").utils.open_file
+local utils = require("strawberry").utils
+local actions = require("strawberry").actions
 
 -- Define the picker --
 local picker = {
@@ -87,10 +86,10 @@ local picker = {
         if file == "" then goto continue end
         -- Create the Item
         local item = create_item({
-          title = get_filename(file),
-          label = remove_home_path(file),
+          title = utils.get_filename(file),
+          label = utils.remove_home_path(file),
           value = file, -- This will be passed into the on_select function
-          on_select = open_file, -- Note that we are using the provided open_file function
+          on_select = actions.open_file, -- Note that we are using the provided open_file function
           on_delete = function()
             vim.api.nvim_buf_delete(buf, { force = true }) -- Custom function to delete this buffer from the list of items
           end,
