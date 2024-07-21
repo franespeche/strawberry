@@ -111,7 +111,7 @@ return picker
 
 # Examples
 ## Git Modified Files
-Displays a list of the modified files respecting git's main branch
+Displays a list of the modified files respecting the current directory's git main (or specified) branch
 ```lua
 local create_item = require("strawberry").create_item
 local utils = require("strawberry").utils
