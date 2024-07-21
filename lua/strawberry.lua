@@ -5,6 +5,17 @@ local table_utils = utils.table_utils
 local actions = require('actions')
 
 -- Helpers --
+local function blink_line(line_num, callback)
+    local interval = 80
+    local ns_id = vim.api.nvim_create_namespace('blink_line_ns') -- Create a namespace
+
+    vim.api.nvim_buf_add_highlight(0, ns_id, 'Visual', line_num - 1, 0, -1)
+
+    vim.defer_fn(function()
+        vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
+        if callback then callback() end
+    end, interval)
+end
 
 local function get_single_character_keymaps(config)
     local single_char_keys = {}
@@ -211,13 +222,15 @@ function Strawberry:register_listeners()
         local line, column = get_cursor_position(self.ctx.window)
         self.ctx.cursor_line = line
         self.ctx.cursor_column = column
-
-        self.items[item_index]:execute(self.ctx)
-        if (self.config.close_on_select) then
-            vim.api.nvim_command(Commands.CLOSE)
-        else
-            vim.api.nvim_command(Commands.REDRAW)
-        end
+        -- Blink line and execute item
+        blink_line(item_index, function()
+            self.items[item_index]:execute(self.ctx)
+            if (self.config.close_on_select) then
+                vim.api.nvim_command(Commands.CLOSE)
+            else
+                vim.api.nvim_command(Commands.REDRAW)
+            end
+        end)
     end, {nargs = '?'})
 end
 
