@@ -109,6 +109,184 @@ return picker
 
 ![Screen Recording 2024-07-04 at 3](https://github.com/franespeche/strawberry/assets/73555733/ce1d0857-d286-4943-98e2-fef28a44cae1)
 
+# Examples
+## Git Modified Files
+Displays a list of the modified files respecting git's main branch
+```lua
+local create_item = require("strawberry").create_item
+local utils = require("strawberry").utils
+local actions = require("strawberry").actions
 
+-- Get the default branch name
+local function get_default_branch_name()
+  local result = vim.fn.system("git symbolic-ref refs/remotes/origin/HEAD")
+  if vim.v.shell_error == 0 then
+    return result:match("^refs/remotes/origin/(.+)%s*$"):gsub("%s+$", "") -- Extract the branch name and remove trailing whitespace
+  else
+    -- TODO: find a better way to get the default branch name
+    return "main"
+  end
+end
 
+local picker = {
+  name = "git_modified",
+  config = { close_on_leave = true, close_on_select = true },
+  get_items = function(branch)
+    if (branch == nil) then branch = get_default_branch_name() end
 
+    -- using systemlist here because system appends a newline character at the end :/
+    local root_dir = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+    local git_modified_files = vim.fn.systemlist(
+                                   "git diff --name-only " .. branch)
+
+    local menu_items = {}
+
+    local i = 1
+    while (i <= #git_modified_files) do
+      local file = root_dir .. "/" .. git_modified_files[i]
+      if (vim.fn.filereadable(file) == 1) then
+        local menu_item = create_item({
+          title = utils.get_filename(file),
+          label = utils.remove_home_path(file),
+          value = file,
+          on_select = actions.open_file,
+        })
+        table.insert(menu_items, menu_item)
+      end
+      i = i + 1
+    end
+    return menu_items
+  end,
+}
+
+return picker
+```
+## Git Recent Files
+Displays a list of recent files for the current git working directory
+```lua
+-- helpers
+local create_item = require("strawberry").create_item
+local utils = require("strawberry").utils
+local actions = require("strawberry").actions
+
+local picker = {
+  name = "git_worktree_recent_files",
+  title = "Recent Files",
+  config = {
+    close_on_leave = true, -- auto close the picker when an item is selected
+    close_on_select = true, -- auto close the picker when an item is selected
+  },
+  get_items = function(limit)
+    if (not utils.is_git_directory()) then
+      error("Not inside a git working tree")
+    end
+    limit = limit or 15
+
+    local menu_items = {}
+    local oldfiles = vim.v.oldfiles
+    local git_root_dir = vim.fn.system("git rev-parse --show-toplevel")
+
+    local i = 1
+    while (i <= #oldfiles and (#menu_items < limit or i < 10)) do
+      local file = oldfiles[i]
+      if (vim.fn.filereadable(file) == 1 and
+          vim.startswith(vim.trim(file), vim.trim(git_root_dir))) then
+        local menu_item = create_item({
+          title = utils.get_filename(file),
+          label = utils.remove_home_path(file),
+          value = file,
+          on_select = actions.open_file,
+        })
+        table.insert(menu_items, menu_item)
+      end
+      i = i + 1
+    end
+    return menu_items
+  end,
+}
+
+return picker
+```
+
+## Recent Files
+Displays a list of recent files
+```lua
+local create_item = require("strawberry").create_item
+local utils = require("strawberry").utils
+local actions = require("strawberry").actions
+
+local picker = {
+  name = "recent_files",
+  config = { close_on_leave = true, close_on_select = true },
+  get_items = function(limit)
+    limit = limit or 15
+
+    local oldfiles = vim.v.oldfiles
+    local menu_items = {}
+
+    local i = 1
+    while (i <= #oldfiles and (#menu_items < limit or i < 10)) do
+      local file = oldfiles[i]
+      if (vim.fn.filereadable(file) == 1) then
+        local menu_item = create_item({
+          title = utils.get_filename(file),
+          label = function(v) return (utils.remove_home_path(v)) end,
+          value = file,
+          on_select = actions.open_file,
+        })
+        table.insert(menu_items, menu_item)
+      end
+      i = i + 1
+    end
+    return menu_items
+  end,
+}
+
+return picker
+```
+
+## Active Buffers
+Displays a list of active buffers
+```lua
+local create_item = require("strawberry").create_item
+local get_filename = require("strawberry").utils.get_filename
+local remove_home_path = require("strawberry").utils.remove_home_path
+local actions = require("strawberry").actions
+
+local picker = {
+  name = "active_buffers",
+  config = {
+    close_on_leave = true,
+    close_on_select = true,
+    keymaps = { delete_item = { "d" } },
+  },
+  get_items = function()
+    local limit = 15
+    local bufs = vim.api.nvim_list_bufs()
+    local menu_items = {}
+    local i = 1
+    while (i <= #bufs and (#menu_items < limit or i < 10)) do
+      local buf = bufs[i]
+      if (vim.api.nvim_buf_is_loaded(buf)) then
+        local file = vim.api.nvim_buf_get_name(buf)
+        if file == "" then goto continue end
+        local item = create_item({
+          title = get_filename(file),
+          label = remove_home_path(file),
+          value = file,
+          on_select = actions.open_file,
+          on_delete = function()
+            vim.api.nvim_buf_delete(buf, { force = true })
+          end,
+        })
+        table.insert(menu_items, item)
+      end
+      ::continue::
+      i = i + 1
+    end
+    return menu_items
+  end,
+}
+
+return picker
+```
