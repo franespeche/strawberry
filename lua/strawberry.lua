@@ -274,8 +274,7 @@ function Strawberry:apply_keymaps()
         for _, keymap in ipairs(self.config.keymaps.select_item) do
             vim.keymap.set("n", keymap, function()
                 local item_index = vim.api.nvim_win_get_cursor(0)[1]
-                return vim.api.nvim_command(Commands.SELECT ..
-                                                tostring(item_index))
+                vim.api.nvim_command(Commands.SELECT .. tostring(item_index))
             end, {silent = true, buffer = self.ctx.buffer})
         end
     end
@@ -305,9 +304,9 @@ function Strawberry:apply_keymaps()
         local key = item.key
         -- Break if key is nil or longer than one character
         if (not key or #key > 1) then break end
-        vim.keymap.set("n", tostring(key),
-                       function() self.items[i]:execute(self.ctx) end,
-                       {silent = true, buffer = self.ctx.buffer})
+        vim.keymap.set("n", tostring(key), function()
+            vim.api.nvim_command(Commands.SELECT .. tostring(i))
+        end, {silent = true, buffer = self.ctx.buffer})
     end
 end
 
