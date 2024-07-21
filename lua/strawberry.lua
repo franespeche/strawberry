@@ -222,6 +222,7 @@ function Strawberry:register_listeners()
 end
 
 function Strawberry:close()
+    Strawberry:clear_keymaps()
     delete_buffers_by_filetype(STRAWBERRY_FILETYPE)
     self.ctx.window = nil
     self.ctx.buffer = nil
@@ -346,9 +347,19 @@ function Strawberry:wipe_buffer(buf)
     Strawberry:modifiable(false)
 end
 
+function Strawberry:clear_keymaps()
+    if (not self.ctx.buffer) then return end
+    local keymaps = vim.api.nvim_buf_get_keymap(self.ctx.buffer, '')
+    for _, keymap in ipairs(keymaps) do
+        vim.api.nvim_buf_del_keymap(self.ctx.buffer, keymap.mode, keymap.lhs)
+    end
+end
+
 -- Resets Strawberry's buffer
 function Strawberry:reset()
+    Strawberry:clear_keymaps()
     Strawberry:register_items()
+    Strawberry:apply_keymaps()
     Strawberry:render()
     Strawberry:restore_cursor_position()
 end
