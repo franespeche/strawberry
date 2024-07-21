@@ -1,7 +1,7 @@
 -- Imports --
 local Item = require('Item')
 local utils = require('utils')
-local table_utils = utils.table_utils
+local table_utils = require('utils.table')
 local actions = require('actions')
 
 -- Helpers --
@@ -102,17 +102,19 @@ local Commands = {
 local STRAWBERRY_FILETYPE = "strawberry"
 local STRAWBERRY_AUGROUP = "Strawberry"
 
+local DEFAULT_CONFIG = {
+    window_height = 5, -- height of the strawberry window
+    close_on_leave = false, -- close on BufLeave
+    close_on_select = true, -- close on item selection
+    keymaps = {close = {"q"}, select_item = {"<cr>"}},
+    label_delimiter = " " -- delimiter character between the title and label. Note this is not a regular space character, so we can use it as a highlight delimiter.
+}
+
 -- Strawberry --
 local Strawberry = {
     items = {},
     pickers = {},
-    config = {
-        window_height = 5, -- height of the strawberry window
-        close_on_leave = false, -- close on BufLeave
-        close_on_select = true, -- close on item selection
-        keymaps = {close = {"q"}, select_item = {"<cr>"}},
-        label_delimiter = " " -- delimiter character between the title and label. Note this is not a regular space character, so we can use it as a highlight delimiter.
-    },
+    config = DEFAULT_CONFIG,
     picker = nil,
     ctx = {
         win_origin = nil, -- window where Strawberry was launched from
@@ -128,6 +130,7 @@ function Strawberry:setup(props)
     validate_setup_props(props)
     setmetatable(self, {__index = Strawberry})
 
+    print(self.config.label_delimiter)
     Strawberry:register_pickers(props.pickers)
     Strawberry:register_config(props.config)
     -- Create init command
@@ -382,7 +385,9 @@ end
 
 -- Register a config into Strawberry
 function Strawberry:register_config(config)
-    table_utils.merge(self.config, config)
+    local clone = table_utils.clone_deep(DEFAULT_CONFIG)
+    local cfg = table_utils.merge(clone, config)
+    self.config = cfg
 end
 
 -- Save useful context

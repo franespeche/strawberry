@@ -37,20 +37,7 @@ local function get_max_title_length(items)
     return max
 end
 
-local function merge(t1, t2)
-    for k, v in pairs(t2) do
-        if type(v) == "table" and type(t1[k]) == "table" then
-            merge(t1[k], v)
-        else
-            t1[k] = v
-        end
-    end
-end
-
-local table_utils = {merge = merge}
-
 local U = {
-    table_utils = table_utils,
     get_filename = get_filename,
     get_home_path = get_home_path,
     get_max_title_length = get_max_title_length,
