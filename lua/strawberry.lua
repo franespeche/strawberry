@@ -408,12 +408,13 @@ function Strawberry:register_items()
     local available_keys = get_available_keys(self.config)
     for i, item in ipairs(self.items) do
         local key = string.sub(available_keys, i, i)
-        item.key = key or "·"
+        item.key = key or nil
     end
 end
 
 -- Applies a picker to Strawberry
 function Strawberry:apply_picker(picker_name)
+
     local picker = self:get_picker(picker_name)
     if (not picker) then
         return error("No registered picker under name: " .. picker_name)
