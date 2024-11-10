@@ -425,14 +425,14 @@ function Strawberry:apply_picker(picker_name)
 end
 
 -- Create a new split for Strawberry
-function Strawberry:create_window(type)
+function Strawberry:create_window(window_type)
     local win_height = vim.fn.min({#self.items, self.config.window_height})
     self.ctx.buffer = vim.api.nvim_create_buf(false, true)
-    if (type == "bottom") then
+    if (window_type == "bottom") then
         vim.cmd('botright ' .. win_height .. ' split')
         self.ctx.window = vim.api.nvim_get_current_win()
     end
-    if (type == "floating") then
+    if (window_type == "floating") then
         -- local win_width = self.config.window_width
         local win_width = math.min(vim.o.columns - 4, self.config.window_width)
         local height = math.min(vim.o.lines - 4, self.config.window_height)
