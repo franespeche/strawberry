@@ -104,6 +104,8 @@ local STRAWBERRY_AUGROUP = "Strawberry"
 
 local DEFAULT_CONFIG = {
     window_height = 5, -- height of the strawberry window
+    window_width = 55, -- width of the strawberry window (applies for floating windows)
+    window_type = "floating", -- type of window to create (floating or bottom)
     close_on_leave = false, -- close on BufLeave
     close_on_select = true, -- close on item selection
     keymaps = {close = {"q"}, select_item = {"<cr>"}},
@@ -151,9 +153,9 @@ function Strawberry:init(picker_name)
     Strawberry:register_items()
     Strawberry:register_ctx()
     Strawberry:register_listeners()
-    Strawberry:create_window()
+    Strawberry:create_window(self.config.window_type)
     Strawberry:apply_keymaps()
-    Strawberry:render()
+    Strawberry:render(self.ctx.buffer)
 end
 
 local function get_cursor_position(win)
@@ -327,13 +329,13 @@ function Strawberry:apply_keymaps()
 end
 
 -- Renders Strawberry buffer
-function Strawberry:render()
+function Strawberry:render(buffer)
     Strawberry:wipe_buffer(self.ctx.buffer)
     -- Set buffer content
     Strawberry:modifiable(true)
     local lines = get_lines(self.items, self.config.label_delimiter)
-    vim.api.nvim_buf_set_lines(self.ctx.buffer, 0, #lines, false, lines)
-    vim.api.nvim_win_set_buf(self.ctx.window, self.ctx.buffer)
+    vim.api.nvim_buf_set_lines(buffer, 0, #lines, false, lines)
+    vim.api.nvim_win_set_buf(self.ctx.window, buffer)
     Strawberry:modifiable(false)
 end
 
@@ -378,15 +380,15 @@ function Strawberry:reset()
     Strawberry:clear_keymaps()
     Strawberry:register_items()
     Strawberry:apply_keymaps()
-    Strawberry:render()
+    Strawberry:render(self.ctx.buffer)
     Strawberry:restore_cursor_position()
 end
 
 -- Register a config into Strawberry
 function Strawberry:register_config(config)
-    local clone = table_utils.clone_deep(DEFAULT_CONFIG)
-    local cfg = table_utils.merge(clone, config)
-    self.config = cfg
+    local default_config = table_utils.clone_deep(DEFAULT_CONFIG)
+    local updated_config = table_utils.merge(default_config, config)
+    self.config = updated_config
 end
 
 -- Save useful context
@@ -423,25 +425,89 @@ function Strawberry:apply_picker(picker_name)
 end
 
 -- Create a new split for Strawberry
-function Strawberry:create_window()
-    -- Create split
-    local height = vim.fn.min({#self.items, self.config.window_height}) + 1
-    vim.cmd('botright ' .. height .. ' split')
-    self.ctx.window = vim.api.nvim_get_current_win()
-    self.ctx.buffer = vim.api.nvim_create_buf(false, true)
+function Strawberry:create_window(type)
+    if (type == "bottom") then
+        -- Create split
+        local height = vim.fn.min({#self.items, self.config.window_height}) + 1
+        vim.cmd('botright ' .. height .. ' split')
+        self.ctx.window = vim.api.nvim_get_current_win()
+        self.ctx.buffer = vim.api.nvim_create_buf(false, true)
 
-    vim.api.nvim_set_option('number', false)
-    vim.api.nvim_set_option('relativenumber', false)
-    vim.api.nvim_set_option('foldcolumn', "0")
-    vim.api.nvim_set_option('foldenable', false)
-    vim.api.nvim_set_option('cursorline', true)
-    vim.api.nvim_set_option('spell', false)
-    vim.api.nvim_set_option('wrap', false)
-    vim.api
-        .nvim_buf_set_option(self.ctx.buffer, 'filetype', STRAWBERRY_FILETYPE)
-    vim.api.nvim_buf_set_option(self.ctx.buffer, 'buflisted', false)
-    vim.api.nvim_buf_set_option(self.ctx.buffer, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
+        vim.api.nvim_set_option('number', false)
+        vim.api.nvim_set_option('relativenumber', false)
+        vim.api.nvim_set_option('foldcolumn', "0")
+        vim.api.nvim_set_option('foldenable', false)
+        vim.api.nvim_set_option('cursorline', true)
+        vim.api.nvim_set_option('spell', false)
+        vim.api.nvim_set_option('wrap', false)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'filetype',
+                                    STRAWBERRY_FILETYPE)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'buflisted', false)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'buftype', 'nofile')
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
+    end
+    if (type == "floating") then
+
+        self.ctx.buffer = vim.api.nvim_create_buf(false, true)
+        local win_height =
+            vim.fn.min({#self.items, self.config.window_height}) + 1
+        local win_width = self.config.window_width or 50 -- Default width if not set
+
+        -- Get cursor position
+        local cursor_pos = vim.api.nvim_win_get_cursor(0)
+        local row = cursor_pos[1] - 1 -- Convert to 0-indexed row
+        local col = cursor_pos[2]
+
+        local opts = {
+            relative = 'cursor',
+            width = win_width,
+            height = win_height,
+            row = 1, -- Position relative to cursor (1 row below)
+            col = 0, -- Position aligned with cursor column
+            style = 'minimal',
+            border = 'rounded'
+        }
+
+        self.ctx.window = vim.api.nvim_open_win(self.ctx.buffer, true, opts)
+
+        vim.api.nvim_win_set_option(self.ctx.window, 'number', false)
+        vim.api.nvim_win_set_option(self.ctx.window, 'relativenumber', false)
+        vim.api.nvim_win_set_option(self.ctx.window, 'foldcolumn', "0")
+        vim.api.nvim_win_set_option(self.ctx.window, 'foldenable', false)
+        vim.api.nvim_win_set_option(self.ctx.window, 'cursorline', true)
+        vim.api.nvim_win_set_option(self.ctx.window, 'spell', false)
+        vim.api.nvim_win_set_option(self.ctx.window, 'wrap', false)
+
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'filetype',
+                                    STRAWBERRY_FILETYPE)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'buflisted', false)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'buftype', 'nofile')
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
+        --[[
+        self.ctx.buffer = vim.api.nvim_create_buf(false, true)
+        local width = math.min(vim.o.columns - 4, self.config.window_width)
+        local height = math.min(vim.o.lines - 4, self.config.window_height)
+        local opts = {
+            relative = 'editor',
+            width = width,
+            height = height,
+            col = (vim.o.columns - width) / 2,
+            row = (vim.o.lines - height) / 2,
+            style = 'minimal',
+            border = 'rounded' -- Customize border style if needed
+        }
+
+        self.ctx.window = vim.api.nvim_open_win(self.ctx.buffer, true, opts)
+
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'filetype',
+                                    STRAWBERRY_FILETYPE)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'buflisted', false)
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'buftype', 'nofile')
+        vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
+        vim.api.nvim_win_set_option(self.ctx.window, 'cursorline', true)
+        vim.api.nvim_win_set_option(self.ctx.window, 'wrap', false)
+        ]] --
+    end
 end
 
 function Strawberry:register_pickers(pickers)
