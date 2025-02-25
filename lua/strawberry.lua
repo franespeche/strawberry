@@ -462,7 +462,8 @@ return {
     context = {
         origin_buf = function()
             return Strawberry.ctx.buf_origin
-        end,
+        end
+    },
     utils = {
         get_filename = utils.get_filename,
         get_home_path = utils.get_home_path,
