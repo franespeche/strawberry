@@ -458,12 +458,11 @@ return {
         local item = Item:create(opts)
         return item
     end,
+    -- hack
+    get_origin_buf = function()
+        return Strawberry.ctx.buf_origin
+    end,
     -- public utils
-    context = {
-        origin_buf = function()
-            return Strawberry.ctx.buf_origin
-        end
-    },
     utils = {
         get_filename = utils.get_filename,
         get_home_path = utils.get_home_path,
