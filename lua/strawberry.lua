@@ -125,6 +125,8 @@ local Strawberry = {
     }
 }
 
+_G.Strawberry = Strawberry
+
 function Strawberry:setup(props)
     validate_setup_props(props)
     setmetatable(self, {__index = Strawberry})
@@ -449,8 +451,6 @@ function Strawberry:register_pickers(pickers)
         end
     end
 end
-
-_G.Strawberry = Strawberry
 
 return {
     setup = Strawberry.setup,
