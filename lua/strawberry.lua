@@ -86,7 +86,6 @@ local function validate_setup_props(props)
             'boolean') then
             return error('config.auto_close must be a boolean')
         end
-
     end
 end
 
@@ -414,7 +413,6 @@ end
 
 -- Applies a picker to Strawberry
 function Strawberry:apply_picker(picker_name)
-
     local picker = self:get_picker(picker_name)
     if (not picker) then
         return error("No registered picker under name: " .. picker_name)
@@ -452,6 +450,8 @@ function Strawberry:register_pickers(pickers)
     end
 end
 
+_G.Strawberry = Strawberry
+
 return {
     setup = Strawberry.setup,
     create_item = function(opts)
@@ -459,9 +459,8 @@ return {
         return item
     end,
     -- hack
-    get_origin_buf = function()
-        return Strawberry.ctx.buf_origin
-    end,
+    origin_buf = (function() return Strawberry.ctx.buf_origin end)(),
+    get_origin_buf = function() return Strawberry.ctx.buf_origin end,
     -- public utils
     utils = {
         get_filename = utils.get_filename,
