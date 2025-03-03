@@ -7,8 +7,9 @@ local function sanitize_props(opts)
     end
 
     -- validate label
-    if opts.label and type(opts.label) ~= "string" and type(opts.label) ~=
-        "function" then error("Item label must be a string or a function") end
+    if (opts.label and type(opts.label) ~= 'string') then
+        error("Item label must be a string")
+    end
 
     -- validate value
     if (opts.value and type(opts.value) ~= 'string') then
@@ -42,40 +43,19 @@ end
      @param {string} value(optional) - The value of the item. This will be passed to the item's on_select
      @param {function} on_select - The on_select to be executed when the item is selected
      @param {function} on_delete - The on_delete to be executed when the item is deleted
-]]
---
+]] --
 local Item = {title = nil, label = nil, value = nil, on_select = nil}
-
-local function safely_execute(fn)
-    local ok, result = pcall(fn)
-    if not ok then
-        vim.notify("Error: " .. result, vim.log.levels.ERROR)
-        return nil
-    end
-    return result
-end
-
-local function get_result_from_string_or_function(string_or_function)
-    if (type(string_or_function) == 'string') then return string_or_function end
-    return safely_execute(string_or_function)
-end
-
-local function _create_item(props)
-    return {
-        value = props.value,
-        title = props.title,
-        label = get_result_from_string_or_function(props.label) or "",
-        on_select = props.on_select,
-        on_delete = props.on_delete or nil
-    }
-end
 
 -- Constructor
 function Item:create(props)
     sanitize_props(props)
-    local item = safely_execute(_create_item(props))
-    if (not item) then return nil end
-
+    local item = {
+        value = props.value,
+        title = props.title,
+        label = props.label or "",
+        on_select = props.on_select,
+        on_delete = props.on_delete or nil
+    }
     setmetatable(item, {__index = Item})
     return item
 end
