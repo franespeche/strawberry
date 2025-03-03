@@ -135,11 +135,7 @@ setmetatable(M, {
 
 _G.Strawberry = M
 
-print(vim.inspect(_G))
-
 function M:setup(props)
-    print('validating.. global')
-    print(vim.inspect(_G))
     print('validating.. props')
     print(vim.inspect(props))
     validate_setup_props(props)
@@ -462,6 +458,16 @@ function M:register_pickers(pickers)
         end
     end
 end
+
+_G.Strawberry = {
+    utils = {
+        get_filename = utils.get_filename,
+        get_home_path = utils.get_home_path,
+        is_git_directory = utils.is_git_directory,
+        open_file = utils.open_file,
+        remove_home_path = utils.remove_home_path
+    }
+}
 
 return {
     setup = M.setup,
