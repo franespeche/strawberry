@@ -133,7 +133,7 @@ setmetatable(M, {
     end
 })
 
-function M:setup(props)
+function M.setup(props)
     print('validating.. props')
     print(vim.inspect(props))
     validate_setup_props(props)
@@ -468,8 +468,9 @@ _G.Strawberry = {
     }
 }
 
-return M
 --[[
+return M
+]] --
 return {
     setup = M.setup,
     create_item = function(opts)
@@ -489,5 +490,3 @@ return {
     },
     actions = {open_file = actions.open_file}
 }
-]]
--- 
