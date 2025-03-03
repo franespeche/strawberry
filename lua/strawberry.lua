@@ -135,9 +135,13 @@ setmetatable(M, {
 
 _G.Strawberry = M
 
-print(vim.inspect(Strawberry))
+print(vim.inspect(_G))
 
 function M:setup(props)
+    print('validating.. global')
+    print(vim.inspect(_G))
+    print('validating.. props')
+    print(vim.inspect(props))
     validate_setup_props(props)
 
     M:register_pickers(props.pickers)
