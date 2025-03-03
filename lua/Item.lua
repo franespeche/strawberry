@@ -57,7 +57,6 @@ end
 
 local function get_result_from_string_or_function(string_or_function)
     if (type(string_or_function) == 'string') then return string_or_function end
-    print('executing')
     return safely_execute(string_or_function)
 end
 
