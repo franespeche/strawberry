@@ -133,8 +133,6 @@ setmetatable(M, {
     end
 })
 
-_G.Strawberry = M
-
 function M:setup(props)
     print('validating.. props')
     print(vim.inspect(props))
@@ -459,6 +457,7 @@ function M:register_pickers(pickers)
     end
 end
 
+print('setting _G.Strawberry variable')
 _G.Strawberry = {
     utils = {
         get_filename = utils.get_filename,
