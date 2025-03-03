@@ -110,7 +110,7 @@ local DEFAULT_CONFIG = {
 }
 
 -- Strawberry --
-local Strawberry = {
+local M = {
     items = {},
     pickers = {},
     config = DEFAULT_CONFIG,
@@ -125,36 +125,45 @@ local Strawberry = {
     }
 }
 
-_G.Strawberry = Strawberry
+setmetatable(M, {
+    __index = function(t, k)
+        ---@diagnostic disable-next-line: no-unknown
+        t[k] = require("snacks." .. k)
+        return rawget(t, k)
+    end
+})
 
-function Strawberry:setup(props)
+_G.Strawberry = M
+
+print(vim.inspect(Strawberry))
+
+function M:setup(props)
     validate_setup_props(props)
-    setmetatable(self, {__index = Strawberry})
 
-    Strawberry:register_pickers(props.pickers)
-    Strawberry:register_config(props.config)
+    M:register_pickers(props.pickers)
+    M:register_config(props.config)
     -- Create init command
     vim.api.nvim_create_user_command('Strawberry', function(args)
         local picker_name = args.args
         if (picker_name == "") then
             return error("Attempted to launch Strawberry with no picker name")
         end
-        return Strawberry:init(picker_name)
+        return M:init(picker_name)
     end, {nargs = '?'})
 end
 
 -- Initialize Strawberry
-function Strawberry:init(picker_name)
+function M:init(picker_name)
     -- Close any existing Strawberry
-    Strawberry:close()
-    Strawberry:apply_picker(picker_name)
-    Strawberry:register_config(self.active_picker.config)
-    Strawberry:register_items()
-    Strawberry:register_ctx()
-    Strawberry:register_listeners()
-    Strawberry:create_window()
-    Strawberry:apply_keymaps()
-    Strawberry:render()
+    M:close()
+    M:apply_picker(picker_name)
+    M:register_config(self.active_picker.config)
+    M:register_items()
+    M:register_ctx()
+    M:register_listeners()
+    M:create_window()
+    M:apply_keymaps()
+    M:render()
 end
 
 local function get_cursor_position(win)
@@ -165,7 +174,7 @@ local function get_cursor_position(win)
 end
 
 -- Creates commands and event listeners
-function Strawberry:register_listeners()
+function M:register_listeners()
     -- Clear any existing autocommands to support pickers with different configs
     local augroup = vim.api.nvim_create_augroup(STRAWBERRY_AUGROUP,
                                                 {clear = true})
@@ -205,20 +214,18 @@ function Strawberry:register_listeners()
 
     -- Commands Listeners --
     -- Handle Reset
-    vim.api.nvim_create_user_command(Commands.REDRAW,
-                                     function() Strawberry:reset() end,
+    vim.api.nvim_create_user_command(Commands.REDRAW, function() M:reset() end,
                                      {nargs = '?'})
 
     -- Handle Delete
     vim.api.nvim_create_user_command(Commands.DELETE, function(args)
         local item_index = tonumber(args.args)
         self.items[item_index]:delete()
-        Strawberry:reset()
+        M:reset()
     end, {nargs = '?'})
 
     -- Handle Close
-    vim.api.nvim_create_user_command(Commands.CLOSE,
-                                     function() Strawberry:close() end,
+    vim.api.nvim_create_user_command(Commands.CLOSE, function() M:close() end,
                                      {nargs = '?'})
 
     -- Handle Select
@@ -240,15 +247,15 @@ function Strawberry:register_listeners()
     end, {nargs = '?'})
 end
 
-function Strawberry:close()
-    Strawberry:clear_keymaps()
+function M:close()
+    M:clear_keymaps()
     delete_buffers_by_filetype(STRAWBERRY_FILETYPE)
     self.ctx.window = nil
     self.ctx.buffer = nil
 end
 
 -- Validates a picker
-function Strawberry:validate_picker(picker)
+function M:validate_picker(picker)
     if (not picker.name) then
         error('"picker.name" must be defined')
         return false
@@ -285,7 +292,7 @@ local function get_lines(items, label_delimiter)
 end
 
 -- Register keymaps for the Strawberry buffer
-function Strawberry:apply_keymaps()
+function M:apply_keymaps()
     -- Select item
     if (self.config.keymaps.select_item) then
         for _, keymap in ipairs(self.config.keymaps.select_item) do
@@ -328,18 +335,18 @@ function Strawberry:apply_keymaps()
 end
 
 -- Renders Strawberry buffer
-function Strawberry:render()
-    Strawberry:wipe_buffer(self.ctx.buffer)
+function M:render()
+    M:wipe_buffer(self.ctx.buffer)
     -- Set buffer content
-    Strawberry:modifiable(true)
+    M:modifiable(true)
     local lines = get_lines(self.items, self.config.label_delimiter)
     vim.api.nvim_buf_set_lines(self.ctx.buffer, 0, #lines, false, lines)
     vim.api.nvim_win_set_buf(self.ctx.window, self.ctx.buffer)
-    Strawberry:modifiable(false)
+    M:modifiable(false)
 end
 
 -- Get picker by name
-function Strawberry:get_picker(picker_name)
+function M:get_picker(picker_name)
     for _, picker in pairs(self.pickers) do
         if (picker.name == picker_name) then return picker end
     end
@@ -347,11 +354,11 @@ function Strawberry:get_picker(picker_name)
 end
 
 -- Set the buffer as modifiable/non-modifiable
-function Strawberry:modifiable(modifiable)
+function M:modifiable(modifiable)
     vim.api.nvim_buf_set_option(0, 'modifiable', modifiable)
 end
 
-function Strawberry:restore_cursor_position()
+function M:restore_cursor_position()
     local lines_amount = vim.api.nvim_buf_line_count(self.ctx.buffer)
     if self.ctx.cursor_line > lines_amount then
         self.ctx.cursor_line = lines_amount
@@ -360,13 +367,13 @@ function Strawberry:restore_cursor_position()
                                 {self.ctx.cursor_line, self.ctx.cursor_column})
 end
 
-function Strawberry:wipe_buffer(buf)
-    Strawberry:modifiable(true)
+function M:wipe_buffer(buf)
+    M:modifiable(true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-    Strawberry:modifiable(false)
+    M:modifiable(false)
 end
 
-function Strawberry:clear_keymaps()
+function M:clear_keymaps()
     if (not self.ctx.buffer) then return end
     local keymaps = vim.api.nvim_buf_get_keymap(self.ctx.buffer, '')
     for _, keymap in ipairs(keymaps) do
@@ -375,29 +382,29 @@ function Strawberry:clear_keymaps()
 end
 
 -- Resets Strawberry's buffer
-function Strawberry:reset()
-    Strawberry:clear_keymaps()
-    Strawberry:register_items()
-    Strawberry:apply_keymaps()
-    Strawberry:render()
-    Strawberry:restore_cursor_position()
+function M:reset()
+    M:clear_keymaps()
+    M:register_items()
+    M:apply_keymaps()
+    M:render()
+    M:restore_cursor_position()
 end
 
 -- Register a config into Strawberry
-function Strawberry:register_config(config)
+function M:register_config(config)
     local clone = table_utils.clone_deep(DEFAULT_CONFIG)
     local cfg = table_utils.merge(clone, config)
     self.config = cfg
 end
 
 -- Save useful context
-function Strawberry:register_ctx()
+function M:register_ctx()
     self.ctx.win_origin = vim.api.nvim_get_current_win() -- the window where Strawberry was launched from
     self.ctx.buf_origin = vim.api.nvim_get_current_buf() -- the buffer where Strawberry was launched from
 end
 
 -- Register items and set uniq keys to each of them
-function Strawberry:register_items()
+function M:register_items()
     local items = self.active_picker.get_items()
     if (#items == 0) then
         vim.notify("Strawberry: No items to display", vim.log.levels.WARN,
@@ -414,7 +421,7 @@ function Strawberry:register_items()
 end
 
 -- Applies a picker to Strawberry
-function Strawberry:apply_picker(picker_name)
+function M:apply_picker(picker_name)
     local picker = self:get_picker(picker_name)
     if (not picker) then
         return error("No registered picker under name: " .. picker_name)
@@ -423,7 +430,7 @@ function Strawberry:apply_picker(picker_name)
 end
 
 -- Create a new split for Strawberry
-function Strawberry:create_window()
+function M:create_window()
     -- Create split
     local height = vim.fn.min({#self.items, self.config.window_height}) + 1
     vim.cmd('botright ' .. height .. ' split')
@@ -444,23 +451,23 @@ function Strawberry:create_window()
     vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
 end
 
-function Strawberry:register_pickers(pickers)
+function M:register_pickers(pickers)
     for _, picker in pairs(pickers or {}) do
-        if (Strawberry:validate_picker(picker)) then
+        if (M:validate_picker(picker)) then
             table.insert(self.pickers, picker)
         end
     end
 end
 
 return {
-    setup = Strawberry.setup,
+    setup = M.setup,
     create_item = function(opts)
         local item = Item:create(opts)
         return item
     end,
     -- hack
-    origin_buf = (function() return Strawberry.ctx.buf_origin end)(),
-    get_origin_buf = function() return Strawberry.ctx.buf_origin end,
+    origin_buf = (function() return M.ctx.buf_origin end)(),
+    get_origin_buf = function() return M.ctx.buf_origin end,
     -- public utils
     utils = {
         get_filename = utils.get_filename,
