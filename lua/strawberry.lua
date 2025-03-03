@@ -133,7 +133,7 @@ setmetatable(M, {
     end
 })
 
-function M.setup(props)
+function M:setup(props)
     print('validating.. props')
     print(vim.inspect(props))
     validate_setup_props(props)
