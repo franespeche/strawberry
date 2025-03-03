@@ -128,7 +128,7 @@ local M = {
 setmetatable(M, {
     __index = function(t, k)
         ---@diagnostic disable-next-line: no-unknown
-        t[k] = require("snacks." .. k)
+        t[k] = require("strawberry." .. k)
         return rawget(t, k)
     end
 })
@@ -468,6 +468,8 @@ _G.Strawberry = {
     }
 }
 
+return M
+--[[
 return {
     setup = M.setup,
     create_item = function(opts)
@@ -487,3 +489,5 @@ return {
     },
     actions = {open_file = actions.open_file}
 }
+]]
+-- 
