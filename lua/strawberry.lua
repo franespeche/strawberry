@@ -457,8 +457,7 @@ function M:register_pickers(pickers)
     end
 end
 
-print('setting _G.Strawberry variable')
-_G.Strawberry = {
+local public = {
     utils = {
         get_filename = utils.get_filename,
         get_home_path = utils.get_home_path,
@@ -468,9 +467,8 @@ _G.Strawberry = {
     }
 }
 
---[[
-return M
-]] --
+_G.Strawberry = M
+
 return {
     setup = M.setup,
     create_item = function(opts)
@@ -481,12 +479,6 @@ return {
     origin_buf = (function() return M.ctx.buf_origin end)(),
     get_origin_buf = function() return M.ctx.buf_origin end,
     -- public utils
-    utils = {
-        get_filename = utils.get_filename,
-        get_home_path = utils.get_home_path,
-        is_git_directory = utils.is_git_directory,
-        open_file = utils.open_file,
-        remove_home_path = utils.remove_home_path
-    },
+    utils = public.utils,
     actions = {open_file = actions.open_file}
 }
