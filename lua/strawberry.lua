@@ -153,10 +153,11 @@ end
 
 -- Initialize Strawberry
 function M:init(picker_name)
-    -- Close any existing Strawberry
+    -- Close any existing instance
     M:close()
     M:apply_picker(picker_name)
     M:register_config(self.active_picker.config)
+    M:register_actions(self.active_picker.actions)
     M:register_items()
     M:register_ctx()
     M:register_listeners()
@@ -253,6 +254,46 @@ function M:close()
     self.ctx.buffer = nil
 end
 
+function validate_action(action)
+    if not action.name then
+        error('"action.name" must be defined')
+        return false
+    end
+    if type(action.name) ~= "string" then
+        error('"action.name" must be of type "string"')
+        return false
+    end
+
+    if not action.fn then
+        error('"action.fn" must be defined')
+        return false
+    end
+    if type(action.fn) ~= "function" then
+        error('"action.fn" must be of type "function"')
+        return false
+    end
+
+    if not action.keymap then
+        error('"action.keymap" must be defined')
+        return false
+    end
+    if type(action.keymap) ~= "string" then
+        error('"action.keymap" must be of type "string"')
+        return false
+    end
+
+    if not action.description then
+        error('"action.description" must be defined')
+        return false
+    end
+    if type(action.description) ~= "string" then
+        error('"action.description" must be of type "string"')
+        return false
+    end
+
+    return true
+end
+
 -- Validates a picker
 function M:validate_picker(picker)
     if (not picker.name) then
@@ -271,6 +312,15 @@ function M:validate_picker(picker)
     if (type(picker.get_items) ~= 'function') then
         error('"picker.get_items" must be of type "function"')
         return false
+    end
+
+    if picker.actions then
+        for _, action in ipairs(picker.actions) do
+            if not validate_action(action) then
+                error('invalid action in picker')
+                return false
+            end
+        end
     end
 
     -- check if the picker already exists
@@ -389,7 +439,18 @@ function M:reset()
     M:restore_cursor_position()
 end
 
+-- Register picker actions
+--- @type function(config: StrawberryConfig): void
+function M:register_actions(picker_actions)
+    if not picker_actions then return end
+    for _, action in ipairs(picker_actions) do
+        vim.keymap.set("n", action.keymap, action.fn,
+                       {silent = true, buffer = self.ctx.buffer})
+    end
+end
+
 -- Register a config into Strawberry
+--- @type function(config: StrawberryConfig): void
 function M:register_config(config)
     local clone = table_utils.clone_deep(DEFAULT_CONFIG)
     local cfg = table_utils.merge(clone, config)
