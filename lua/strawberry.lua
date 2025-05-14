@@ -101,6 +101,7 @@ local Commands = {
 local STRAWBERRY_FILETYPE = "strawberry"
 local STRAWBERRY_AUGROUP = "Strawberry"
 
+-- @type StrawberryConfig
 local DEFAULT_CONFIG = {
     window_height = 5, -- height of the strawberry window
     close_on_leave = false, -- close on BufLeave
@@ -134,12 +135,12 @@ setmetatable(M, {
 })
 
 function M.setup(props)
-    print('validating.. props')
-    print(vim.inspect(props))
     validate_setup_props(props)
 
     M:register_pickers(props.pickers)
-    M:register_config(props.config)
+
+    local cfg = table_utils.merge(DEFAULT_CONFIG, props.config)
+    M:register_config(cfg)
     -- Create init command
     vim.api.nvim_create_user_command('Strawberry', function(args)
         local picker_name = args.args
