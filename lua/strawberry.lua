@@ -31,7 +31,7 @@ end
 
 -- Get available keys for the items, excluding the ones used by any existing keymap
 local function get_available_keys(config)
-    local keys = "123qweasdzxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
+    local keys = "qweasd123zxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
     local single_char_keys = get_single_character_keymaps(config)
 
     local available_keys = {}
