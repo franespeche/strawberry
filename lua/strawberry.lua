@@ -1,15 +1,15 @@
 -- Imports --
-local Item = require('Item')
-local utils = require('utils')
-local table_utils = require('utils.table')
-local actions = require('actions')
+local Item = require("Item")
+local utils = require("utils")
+local table_utils = require("utils.table")
+local actions = require("actions")
 
 -- Helpers --
 local function blink_line(line_num, callback)
     local interval = 80
-    local ns_id = vim.api.nvim_create_namespace('blink_line_ns') -- Create a namespace
+    local ns_id = vim.api.nvim_create_namespace("blink_line_ns") -- Create a namespace
 
-    vim.api.nvim_buf_add_highlight(0, ns_id, 'Visual', line_num - 1, 0, -1)
+    vim.api.nvim_buf_add_highlight(0, ns_id, "Visual", line_num - 1, 0, -1)
 
     vim.defer_fn(function()
         vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
@@ -31,7 +31,7 @@ end
 
 -- Get available keys for the items, excluding the ones used by any existing keymap
 local function get_available_keys(config)
-    local keys = "qweasd123zxc4rfv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
+    local keys = "qweasd123zxc4rv5tgb6y7umABCDEFGHIJLKLMNOPQRSTUVWXYZ"
     local single_char_keys = get_single_character_keymaps(config)
 
     local available_keys = {}
@@ -55,7 +55,7 @@ local function delete_buffers_by_filetype(filetype)
     local buffers = vim.api.nvim_list_bufs()
     for _, buf in ipairs(buffers) do
         if vim.api.nvim_buf_is_loaded(buf) then
-            if vim.api.nvim_buf_get_option(buf, 'filetype') == filetype then
+            if vim.api.nvim_buf_get_option(buf, "filetype") == filetype then
                 delete_buffer(buf)
             end
         end
@@ -69,22 +69,22 @@ end
 
 -- Validates setup props
 local function validate_setup_props(props)
-    if (vim.tbl_isempty(props or {})) then
-        return error('Called setup() method without any props')
+    if vim.tbl_isempty(props or {}) then
+        return error("Called setup() method without any props")
     end
     -- Pickers
-    if (not props.pickers) then
-        return error('Called setup() method with no pickers')
+    if not props.pickers then
+        return error("Called setup() method with no pickers")
     end
     -- Config
-    if (props.config) then
-        if (props.config.window_height and type(props.config.window_height) ~=
-            'number') then
-            return error('config.window_height must be a number')
+    if props.config then
+        if props.config.window_height and type(props.config.window_height) ~=
+            "number" then
+            return error("config.window_height must be a number")
         end
-        if (props.config.auto_close and type(props.config.auto_close) ~=
-            'boolean') then
-            return error('config.auto_close must be a boolean')
+        if props.config.auto_close and type(props.config.auto_close) ~=
+            "boolean" then
+            return error("config.auto_close must be a boolean")
         end
     end
 end
@@ -142,17 +142,18 @@ function M.setup(props)
     local cfg = table_utils.merge(DEFAULT_CONFIG, props.config)
     M:register_config(cfg)
     -- Create init command
-    vim.api.nvim_create_user_command('Strawberry', function(args)
+    vim.api.nvim_create_user_command("Strawberry", function(args)
         local picker_name = args.args
-        if (picker_name == "") then
+        if picker_name == "" then
             return error("Attempted to launch Strawberry with no picker name")
         end
         return M:init(picker_name)
-    end, {nargs = '?'})
+    end, {nargs = "?"})
 end
 
 -- Initialize Strawberry
 function M:init(picker_name)
+    self.mode = 'default'
     -- Close any existing instance
     M:close()
     M:apply_picker(picker_name)
@@ -182,17 +183,17 @@ function M:register_listeners()
 
     -- Event Listeners --
     -- Set highlights
-    vim.api.nvim_create_autocmd('FileType', {
+    vim.api.nvim_create_autocmd("FileType", {
         pattern = STRAWBERRY_FILETYPE,
         callback = function()
-            if (vim.fn.has("syntax")) then
+            if vim.fn.has("syntax") then
                 vim.cmd([[syntax clear]])
                 vim.cmd(
                     [[syntax match strawberryLineKey /\v^\s\s((\d|\w))/ contained]])
                 vim.cmd(
-                    'syntax match strawberryTitle /\\v^\\s\\s(\\d|\\w)\\s+(.+)\\s+( |·|' ..
+                    "syntax match strawberryTitle /\\v^\\s\\s(\\d|\\w)\\s+(.+)\\s+( |·|" ..
                         self.config.label_delimiter ..
-                        ')/ contains=strawberryLineKey')
+                        ")/ contains=strawberryLineKey")
                 vim.cmd([[hi def link strawberryLineKey String]])
                 vim.cmd([[hi def link strawberryTitle Type]])
             end
@@ -200,12 +201,12 @@ function M:register_listeners()
     })
 
     -- Handle BufLeave
-    if (self.config.close_on_leave) then
-        vim.api.nvim_create_autocmd('BufLeave', {
+    if self.config.close_on_leave then
+        vim.api.nvim_create_autocmd("BufLeave", {
             pattern = "*",
             group = augroup,
             callback = function()
-                if (vim.bo.filetype == STRAWBERRY_FILETYPE) then
+                if vim.bo.filetype == STRAWBERRY_FILETYPE then
                     vim.api.nvim_command(Commands.CLOSE)
                 end
             end
@@ -215,18 +216,18 @@ function M:register_listeners()
     -- Commands Listeners --
     -- Handle Reset
     vim.api.nvim_create_user_command(Commands.REDRAW, function() M:reset() end,
-                                     {nargs = '?'})
+                                     {nargs = "?"})
 
     -- Handle Delete
     vim.api.nvim_create_user_command(Commands.DELETE, function(args)
         local item_index = tonumber(args.args)
         self.items[item_index]:delete()
         M:reset()
-    end, {nargs = '?'})
+    end, {nargs = "?"})
 
     -- Handle Close
     vim.api.nvim_create_user_command(Commands.CLOSE, function() M:close() end,
-                                     {nargs = '?'})
+                                     {nargs = "?"})
 
     -- Handle Select
     vim.api.nvim_create_user_command(Commands.SELECT, function(args)
@@ -238,13 +239,13 @@ function M:register_listeners()
         -- Blink line and execute item
         blink_line(item_index, function()
             self.items[item_index]:execute(self.ctx)
-            if (self.config.close_on_select) then
+            if self.config.close_on_select then
                 vim.api.nvim_command(Commands.CLOSE)
             else
                 vim.api.nvim_command(Commands.REDRAW)
             end
         end)
-    end, {nargs = '?'})
+    end, {nargs = "?"})
 end
 
 function M:close()
@@ -296,20 +297,20 @@ end
 
 -- Validates a picker
 function M:validate_picker(picker)
-    if (not picker.name) then
+    if not picker.name then
         error('"picker.name" must be defined')
         return false
     end
-    if (type(picker.name) ~= 'string') then
+    if type(picker.name) ~= "string" then
         error('"picker.name" must be of type "string"')
         return false
     end
 
-    if (not picker.get_items) then
+    if not picker.get_items then
         error('"picker.get_items" must be defined')
         return false
     end
-    if (type(picker.get_items) ~= 'function') then
+    if type(picker.get_items) ~= "function" then
         error('"picker.get_items" must be of type "function"')
         return false
     end
@@ -325,7 +326,7 @@ function M:validate_picker(picker)
 
     -- check if the picker already exists
     for _, registered_picker in pairs(self.pickers) do
-        if (registered_picker.name == picker.name) then return false end
+        if registered_picker.name == picker.name then return false end
     end
     return true
 end
@@ -343,7 +344,7 @@ end
 -- Register keymaps for the Strawberry buffer
 function M:apply_keymaps()
     -- Select item
-    if (self.config.keymaps.select_item) then
+    if self.config.keymaps.select_item then
         for _, keymap in ipairs(self.config.keymaps.select_item) do
             vim.keymap.set("n", keymap, function()
                 local item_index = vim.api.nvim_win_get_cursor(0)[1]
@@ -353,7 +354,7 @@ function M:apply_keymaps()
     end
 
     -- Delete item
-    if (self.config.keymaps.delete_item) then
+    if self.config.keymaps.delete_item then
         for _, keymap in ipairs(self.config.keymaps.delete_item) do
             vim.keymap.set("n", keymap, function()
                 local item_index = vim.api.nvim_win_get_cursor(0)[1]
@@ -364,7 +365,7 @@ function M:apply_keymaps()
     end
 
     -- Close Strawberry
-    if (self.config.keymaps.close) then
+    if self.config.keymaps.close then
         for _, keymap in ipairs(self.config.keymaps.close) do
             vim.keymap.set("n", keymap, function()
                 return vim.api.nvim_command(Commands.CLOSE)
@@ -372,11 +373,50 @@ function M:apply_keymaps()
         end
     end
 
+    -- Custom Method
+    if self.config.keymaps.custom_method then
+        if not self.active_picker.custom_method then
+            -- TODO: change this for a warning message
+            return error("No custom method defined for this picker")
+        end
+        local keymap
+        local callback
+        for _, v in ipairs(self.config.keymaps.custom_method) do
+            if type(v) == string then keymap = v end
+            if type(v) == "function" then callback = v end
+        end
+        if keymap and callback then
+            vim.keymap.set("n", keymap, function() return callback() end,
+                           {silent = true, buffer = self.ctx.buffer})
+        end
+    end
+
+    vim.keymap.set('n', '<esc>', function()
+        if (self.mode and self.mode == "grep") then
+            self.mode = "default"
+            M:render(self.items)
+        end
+    end, {silent = true, buffer = self.ctx.buffer})
+
+    -- grep items
+    vim.keymap.set('n', '/', function()
+        self.mode = "grep"
+        local input = vim.fn.input("Grep: ")
+        if input == "" then return end
+        local filtered_items = {}
+        for _, item in ipairs(self.items) do
+            if string.find(item.title, input) then
+                table.insert(filtered_items, item)
+            end
+        end
+        M:render(filtered_items)
+    end, {silent = true, buffer = self.ctx.buffer})
+
     -- Keymaps for each item
     for i, item in ipairs(self.items) do
         local key = item.key
         -- Break if key is nil or longer than one character
-        if (not key or #key > 1) then break end
+        if not key or #key > 1 then break end
         vim.keymap.set("n", tostring(key), function()
             vim.api.nvim_command(Commands.SELECT .. tostring(i))
         end, {silent = true, buffer = self.ctx.buffer})
@@ -384,11 +424,11 @@ function M:apply_keymaps()
 end
 
 -- Renders Strawberry buffer
-function M:render()
+function M:render(items)
     M:wipe_buffer(self.ctx.buffer)
     -- Set buffer content
     M:modifiable(true)
-    local lines = get_lines(self.items, self.config.label_delimiter)
+    local lines = get_lines(items or self.items, self.config.label_delimiter)
     vim.api.nvim_buf_set_lines(self.ctx.buffer, 0, #lines, false, lines)
     vim.api.nvim_win_set_buf(self.ctx.window, self.ctx.buffer)
     M:modifiable(false)
@@ -397,14 +437,14 @@ end
 -- Get picker by name
 function M:get_picker(picker_name)
     for _, picker in pairs(self.pickers) do
-        if (picker.name == picker_name) then return picker end
+        if picker.name == picker_name then return picker end
     end
     return nil
 end
 
 -- Set the buffer as modifiable/non-modifiable
 function M:modifiable(modifiable)
-    vim.api.nvim_buf_set_option(0, 'modifiable', modifiable)
+    vim.api.nvim_buf_set_option(0, "modifiable", modifiable)
 end
 
 function M:restore_cursor_position()
@@ -423,8 +463,8 @@ function M:wipe_buffer(buf)
 end
 
 function M:clear_keymaps()
-    if (not self.ctx.buffer) then return end
-    local keymaps = vim.api.nvim_buf_get_keymap(self.ctx.buffer, '')
+    if not self.ctx.buffer then return end
+    local keymaps = vim.api.nvim_buf_get_keymap(self.ctx.buffer, "")
     for _, keymap in ipairs(keymaps) do
         vim.api.nvim_buf_del_keymap(self.ctx.buffer, keymap.mode, keymap.lhs)
     end
@@ -466,7 +506,7 @@ end
 -- Register items and set uniq keys to each of them
 function M:register_items()
     local items = self.active_picker.get_items()
-    if (#items == 0) then
+    if #items == 0 then
         vim.notify("Strawberry: No items to display", vim.log.levels.WARN,
                    {title = "Strawberry"})
         return
@@ -483,7 +523,7 @@ end
 -- Applies a picker to Strawberry
 function M:apply_picker(picker_name)
     local picker = self:get_picker(picker_name)
-    if (not picker) then
+    if not picker then
         return error("No registered picker under name: " .. picker_name)
     end
     self.active_picker = picker
@@ -493,27 +533,27 @@ end
 function M:create_window()
     -- Create split
     local height = vim.fn.min({#self.items, self.config.window_height}) + 1
-    vim.cmd('botright ' .. height .. ' split')
+    vim.cmd("botright " .. height .. " split")
     self.ctx.window = vim.api.nvim_get_current_win()
     self.ctx.buffer = vim.api.nvim_create_buf(false, true)
 
-    vim.api.nvim_set_option('number', false)
-    vim.api.nvim_set_option('relativenumber', false)
-    vim.api.nvim_set_option('foldcolumn', "0")
-    vim.api.nvim_set_option('foldenable', false)
-    vim.api.nvim_set_option('cursorline', true)
-    vim.api.nvim_set_option('spell', false)
-    vim.api.nvim_set_option('wrap', false)
+    vim.api.nvim_set_option("number", false)
+    vim.api.nvim_set_option("relativenumber", false)
+    vim.api.nvim_set_option("foldcolumn", "0")
+    vim.api.nvim_set_option("foldenable", false)
+    vim.api.nvim_set_option("cursorline", true)
+    vim.api.nvim_set_option("spell", false)
+    vim.api.nvim_set_option("wrap", false)
     vim.api
-        .nvim_buf_set_option(self.ctx.buffer, 'filetype', STRAWBERRY_FILETYPE)
-    vim.api.nvim_buf_set_option(self.ctx.buffer, 'buflisted', false)
-    vim.api.nvim_buf_set_option(self.ctx.buffer, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(self.ctx.buffer, 'swapfile', false)
+        .nvim_buf_set_option(self.ctx.buffer, "filetype", STRAWBERRY_FILETYPE)
+    vim.api.nvim_buf_set_option(self.ctx.buffer, "buflisted", false)
+    vim.api.nvim_buf_set_option(self.ctx.buffer, "buftype", "nofile")
+    vim.api.nvim_buf_set_option(self.ctx.buffer, "swapfile", false)
 end
 
 function M:register_pickers(pickers)
     for _, picker in pairs(pickers or {}) do
-        if (M:validate_picker(picker)) then
+        if M:validate_picker(picker) then
             table.insert(self.pickers, picker)
         end
     end
